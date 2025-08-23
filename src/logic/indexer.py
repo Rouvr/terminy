@@ -62,15 +62,20 @@ class RecordIndexer:
         self.name_to_ids.clear(); self.file_to_ids.clear(); self.desc_to_ids.clear(); self.id_to_ids.clear()
         self.created.clear(); self.modified.clear(); self.vstart.clear(); self.vend.clear(); self.tags.clear()
 
-        for rec in self._walk_records(self.root):
+        for rec in Directory._walk_records(self.root):
             self._index_record(rec)
 
         self._rebuild_tries()
 
-    def update(self, rec: Record) -> None:
+    def update(self, rec: Record | List[Record]) -> None:
         """Refresh one record after rename/move/edit."""
-        self.remove(rec)
-        self._index_record(rec)
+        if isinstance(rec, list):
+            for r in rec:
+                self.remove(r)
+                self._index_record(r)
+        else:
+            self.remove(rec)
+            self._index_record(rec)
         self._rebuild_tries()
 
     def remove(self, rec: Record) -> None:
@@ -87,6 +92,7 @@ class RecordIndexer:
         self._discard_from(self.file_to_ids, self.file_norm.get(rid))
         self._discard_from(self.desc_to_ids, self.desc_norm.get(rid))
         self._discard_from(self.id_to_ids, self.id_norm.get(rid))
+    
 
     def _discard_from(self, inv: Dict[str, Set[str]], key: Optional[str]) -> None:
         if not key:
@@ -294,9 +300,4 @@ class RecordIndexer:
         }.get(sort_by, lambda r: getattr(r, "_date_created", datetime.min))
         return sorted(records, key=keyf, reverse=descending)
 
-    # traversal
-    def _walk_records(self, d: Directory):
-        for r in d.list_records():
-            yield r
-        for sub in d.list_directories():
-            yield from self._walk_records(sub)
+

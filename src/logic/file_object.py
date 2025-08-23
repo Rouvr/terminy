@@ -3,7 +3,7 @@ import os
 import uuid
 from unidecode import unidecode
 from datetime import datetime
-from helpers import normalize
+from .helpers import normalize
 
 class FileObject:
     def __init__(self, **kwargs):

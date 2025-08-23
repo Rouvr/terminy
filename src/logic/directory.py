@@ -109,12 +109,14 @@ class Directory(FileObject):
         
         return True
     
-    def inherit_children(self, child_candidates: typing.List[FileObject] | FileObject) -> typing.List[FileObject]:
+    def inherit_children(self, child_candidates: typing.List[FileObject] | FileObject, check: bool = True) -> typing.List[FileObject]:
         """Returns the list of actually inherited children (a subset of candidates)."""
         if isinstance(child_candidates, FileObject):
             child_candidates = [child_candidates]
-        if not self.can_inherit_children(child_candidates):
-            return []
+        
+        if check:
+            if not self.can_inherit_children(child_candidates):
+                return []
         
         inherited = []
         for child in child_candidates:
@@ -139,3 +141,17 @@ class Directory(FileObject):
         for child in new_dir._children:
             child.parent = new_dir
         return new_dir
+
+    def print_children(self, depth: int = 0):
+        print(f"{'  ' * depth}☐ {self.get_file_name()}")
+        for child in self.list_records():
+            print(f"{'  ' * (depth + 1)}– {child.get_file_name()}")
+        for child in self.list_directories():
+            child.print_children(depth + 1)
+            
+    @classmethod
+    def _walk_records(cls, d: 'Directory'):
+        for r in d.list_records():
+            yield r
+        for sub in d.list_directories():
+            yield from cls._walk_records(sub)
