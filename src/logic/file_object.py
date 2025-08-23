@@ -1,9 +1,13 @@
 import typing
 import os
+import uuid
+from unidecode import unidecode
 from datetime import datetime
+from helpers import normalize
 
 class FileObject:
     def __init__(self, **kwargs):
+        self._id: str = str(uuid.uuid4())
         self._file_name: str = ""
         self._date_created: datetime = datetime.now()
         self._date_modified: datetime = datetime.now()
@@ -11,6 +15,7 @@ class FileObject:
         self._restore_path: typing.Optional[str] = None
         self.parent: typing.Optional[FileObject] = None
         self.__dict__.update(kwargs)
+        self._normal_file_name: str = normalize(self._file_name)
 
     def to_dict(self) -> dict:
         return {
@@ -24,7 +29,9 @@ class FileObject:
     @classmethod
     def from_dict(cls, data: dict) -> 'FileObject':
         obj = cls()
-        
+        obj._file_name = data.get("_file_name", "")
+        obj._normal_file_name = normalize(obj._file_name)
+        obj._id = str(uuid.uuid4())
         date_created_str = data.get("_date_created")
         obj._date_created = datetime.fromisoformat(date_created_str) if isinstance(date_created_str, str) and date_created_str else datetime.now()
         date_modified_str = data.get("_date_modified")
@@ -83,3 +90,5 @@ class FileObject:
             _date_modified=self._date_modified,
             _icon_path=self._icon_path,
         )
+    def get_id(self) -> str:
+        return self._id

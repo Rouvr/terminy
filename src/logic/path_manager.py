@@ -47,6 +47,19 @@ def get_base_path_registry(per_user: bool = True) -> str | None:
     except OSError:
         return None
 
+def remove_registry(per_user: bool = True):
+    """
+    Remove the base path from the registry.
+    """
+    root = winreg.HKEY_CURRENT_USER if per_user else winreg.HKEY_LOCAL_MACHINE
+    try:
+        with _open_key(root, winreg.KEY_WRITE) as k:
+            winreg.DeleteValue(k, REG_VALNAME)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        pass
+
 class PathManager:
     
     initialized : bool = True if get_base_path_registry() else False

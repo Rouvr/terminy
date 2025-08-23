@@ -7,7 +7,7 @@ from datetime import datetime
 
 from .directory import Directory
 from .record import Record
-from .helpers import factory_from_dict
+from .helpers import normalize
 from .path_manager import PathManager
 from .file_object import FileObject
 
@@ -57,7 +57,7 @@ class Controller:
             return  Directory.new_empty_directory()
         return Directory.from_dict(data)
         
-    def get_root(self) -> typing.Optional[Directory]:
+    def get_root(self) -> Directory:
         return self.root_directory
     
     def save_state(self):
@@ -130,10 +130,15 @@ class Controller:
         else:
             print(f"Cannot restore object to '{target_dir._file_name}', name conflict.")
         
-    def add_to_clipboard(self, obj: FileObject, action: str) -> bool:
-        if obj is None or action not in ("copy", "cut"):
+    def add_to_clipboard(self, objs: typing.List[FileObject] | FileObject, action: str = "copy") -> bool:
+        if objs is None or action not in ("copy", "cut"):
             return False
-        self.clipboard = [obj]
+
+        if isinstance(objs, list):
+            self.clipboard.extend(objs)
+        else:
+            self.clipboard.append(objs)
+
         self.clipboard_action = action
         return True
     
@@ -147,3 +152,5 @@ class Controller:
             elif self.clipboard_action == "cut":
                 target_dir.inherit_children(obj)
         return True
+    
+    

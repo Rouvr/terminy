@@ -1,6 +1,7 @@
 import typing
 from datetime import datetime
 from .file_object import FileObject
+from .helpers import normalize
 
 class Record(FileObject):
     def __init__(self, **kwargs):
@@ -13,6 +14,9 @@ class Record(FileObject):
         self._data_folder_path: str = ""
         self._tags: typing.List[str] = []
         self.__dict__.update(kwargs)
+        
+        self._normal_name : str = normalize(self._name)
+        self._normal_description : str = normalize(self._description)
 
     def to_dict(self) -> dict:
         return super().to_dict() | {
@@ -34,8 +38,11 @@ class Record(FileObject):
         obj._date_modified = super_obj._date_modified
         obj._icon_path = super_obj._icon_path
         obj._file_name = super_obj._file_name
+        obj._id =  super_obj._id
+        obj._normal_file_name = super_obj._normal_file_name
         
         obj._name = data.get("_name", "")
+        obj._normal_name = normalize(obj._name)
         obj._description = data.get("_description", "")
         
         validity_start_str = data.get("_validity_start")

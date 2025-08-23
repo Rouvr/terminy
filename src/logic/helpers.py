@@ -6,6 +6,11 @@ from .file_object import FileObject
 from .directory import Directory
 from .record import Record
 
+from unidecode import unidecode
+
+def normalize(text:str) -> str:
+    return unidecode(text).lower().strip()
+
 def factory_from_dict(data: Dict[str, Any]) -> FileObject:
     """Pick the right class based on the 'type' field."""
     t = data.get("type")

@@ -24,10 +24,12 @@ class Directory(FileObject):
         super_obj = FileObject.from_dict(data)
         
         obj = cls()
+        obj._id =  super_obj._id
         obj._date_created = super_obj._date_created
         obj._date_modified = super_obj._date_modified
         obj._icon_path = super_obj._icon_path
         obj._file_name = super_obj._file_name
+        obj._normal_file_name = super_obj._normal_file_name
 
         children = data.get("_children", [])
         obj._children = [
