@@ -177,7 +177,19 @@ def print_thing():
     root = c.get_root()
     root.print_children()
     
+    res = c.search(name="Faktura")
+    
+    for r in res:
+        print(r)
+
+    print()
+    res = c.search(require_tags=["archived"])
+
+    for r in res:
+        print(r)
+
 
 if __name__ == "__main__":
+    # create()
     print_thing()
     

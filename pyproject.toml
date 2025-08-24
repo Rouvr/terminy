@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terminy"
+version = "0.1.0"
+description = "Terminy app (logic + GUI)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Rouvr" }]
+
+dependencies = [
+  "Unidecode>=1.0.0",
+  "RapidFuzz>=3.0.0",
+  "marisa-trie>=1.0.0",
+  "PySide6>=6.0.0",
+  "PySide6_Addons>=6.0.0",
+  "PySide6_Essentials>=6.0.0",
+  "shiboken6>=6.0.0",
+]
+
+[project.scripts]
+terminy = "terminy:main"
+
+[tool.setuptools]
+# Not using a src/ layout; explicitly include logic, gui
+packages = { find = { include = ["logic", "gui"] } }
+
+[tool.setuptools.package-data]
+# Add patterns for icons/templates, e.g.:
+# "gui" = ["assets/**/*"]

@@ -1,0 +1,15 @@
+LANG=English
+LANG_LOCAL=English
+TEST_MSG=Hi\tThis is a text= \n with a newline!"
+APP_TITLE=Terminy
+NAV_BACK=Back
+NAV_FORWARD=Forward
+NAV_UP=Up
+NAV_PATH_PLACEHOLDER=Your path here, eg. /invoices/
+NAV_PATH_LABEL=New Path
+NAV_REFRESH=Refresh
+STATUS_READY=Ready
+FOLDERS=Folders
+FOLDERS_FAVORITES=Favorites
+FOLDERS_WORKSPACE=Workspace
+RECORDS=Records

@@ -262,4 +262,6 @@ class Controller:
     def id_to_path(self, id: str) -> Optional[str]:
         obj = self.id_to_object(id)
         return obj.get_full_path() if obj else None
-    
+
+    def get_favorite_dirs(self) -> List[Directory]:
+        return [obj for obj in self.id_cache.values() if isinstance(obj, Directory) and obj.is_favorite()]

@@ -7,7 +7,9 @@ class Directory(FileObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._children: List[FileObject] = []
+        self._favorite: bool = False
         self.__dict__.update(kwargs)
+        
         
     def __repr__(self) -> str:
         attrs = ', '.join(f"{k}={v!r}" for k, v in self.__dict__.items())
@@ -16,6 +18,7 @@ class Directory(FileObject):
     def to_dict(self) -> dict:
         return super().to_dict() | {
             "type": "Directory",
+            "_favorite": self._favorite,
             "_children": [child.to_dict() for child in self._children],
         }
 
@@ -31,6 +34,7 @@ class Directory(FileObject):
         obj._file_name = super_obj._file_name
         obj._normal_file_name = super_obj._normal_file_name
 
+        obj._favorite = data.get("_favorite", False)
         children = data.get("_children", [])
         obj._children = [
                 cast(FileObject, Directory.from_dict(child_data)) 
@@ -149,6 +153,12 @@ class Directory(FileObject):
         for child in self.list_directories():
             child.print_children(depth + 1)
             
+    def is_favorite(self) -> bool:
+        return self._favorite
+    
+    def set_favorite(self, fav: bool):
+        self._favorite = fav
+
     @classmethod
     def _walk_records(cls, d: 'Directory'):
         for r in d.list_records():

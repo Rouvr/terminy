@@ -1,0 +1,140 @@
+{
+  "type": "Directory",
+  "_file_name": "",
+  "_date_created": "2025-08-23T18:48:19.002468",
+  "_date_modified": "2025-08-23T18:48:19.002468",
+  "_icon_path": "",
+  "_children": [
+    {
+      "type": "Directory",
+      "_file_name": "Invoices",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": [
+        {
+          "type": "Record",
+          "_file_name": "invoice-2025-08-001.pdf",
+          "_date_created": "2025-08-23T18:48:19.009538",
+          "_date_modified": "2025-08-23T18:48:19.009538",
+          "_icon_path": "",
+          "_name": "Faktura 2025-08-001",
+          "_description": "Z\u00e1loha za zemn\u00ed pr\u00e1ce",
+          "_validity_start": "2025-07-24T18:48:19.009538",
+          "_validity_end": "2025-09-22T18:48:19.009538",
+          "_data_folder_path": "",
+          "_tags": [
+            "invoice",
+            "construction"
+          ]
+        },
+        {
+          "type": "Record",
+          "_file_name": "invoice-2025-08-002.pdf",
+          "_date_created": "2025-08-23T18:48:19.012625",
+          "_date_modified": "2025-08-23T18:48:19.012625",
+          "_icon_path": "",
+          "_name": "Faktura 2025-08-002",
+          "_description": "Fin\u00e1ln\u00ed vy\u00fa\u010dtov\u00e1n\u00ed bagru",
+          "_validity_start": "2025-08-23T18:48:19.009538",
+          "_validity_end": "2025-09-22T18:48:19.009538",
+          "_data_folder_path": "",
+          "_tags": [
+            "invoice",
+            "machinery"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Contracts",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": [
+        {
+          "type": "Directory",
+          "_file_name": "Suppliers",
+          "_date_created": "2025-08-23T18:48:19.015625",
+          "_date_modified": "2025-08-23T18:48:19.015625",
+          "_icon_path": "",
+          "_children": [
+            {
+              "type": "Record",
+              "_file_name": "contract-supplier-ACME.pdf",
+              "_date_created": "2025-08-23T18:48:19.015625",
+              "_date_modified": "2025-08-23T18:48:19.015625",
+              "_icon_path": "",
+              "_name": "Smlouva s dodavatelem ACME",
+              "_description": "Servisn\u00ed kontrakt na stroje",
+              "_validity_start": "2025-07-24T18:48:19.009538",
+              "_validity_end": null,
+              "_data_folder_path": "",
+              "_tags": [
+                "contract",
+                "service"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Archive",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": [
+        {
+          "type": "Record",
+          "_file_name": "invoice-2024-12-099.pdf",
+          "_date_created": "2025-08-23T18:48:19.015625",
+          "_date_modified": "2025-08-23T18:48:19.015625",
+          "_icon_path": "",
+          "_name": "Faktura 2024-12-099",
+          "_description": "Star\u0161\u00ed faktura",
+          "_validity_start": "2024-12-01T00:00:00",
+          "_validity_end": "2025-01-01T00:00:00",
+          "_data_folder_path": "",
+          "_tags": [
+            "invoice",
+            "archived"
+          ]
+        },
+        {
+          "type": "Record",
+          "_file_name": "contract-old.pdf",
+          "_date_created": "2025-08-23T18:48:19.015625",
+          "_date_modified": "2025-08-23T18:48:19.015625",
+          "_icon_path": "",
+          "_name": "Smlouva star\u00e1",
+          "_description": "Vypr\u0161ela smlouva",
+          "_validity_start": "2023-01-01T00:00:00",
+          "_validity_end": "2024-01-01T00:00:00",
+          "_data_folder_path": "",
+          "_tags": [
+            "contract",
+            "archived"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Record",
+      "_file_name": "readme.txt",
+      "_date_created": "2025-08-23T18:48:19.015625",
+      "_date_modified": "2025-08-23T18:48:19.015625",
+      "_icon_path": "",
+      "_name": "Projekt Terminy",
+      "_description": "Ko\u0159enov\u00fd z\u00e1znam s informacemi",
+      "_validity_start": null,
+      "_validity_end": null,
+      "_data_folder_path": "",
+      "_tags": [
+        "meta"
+      ]
+    }
+  ]
+}
