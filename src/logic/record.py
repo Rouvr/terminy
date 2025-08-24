@@ -1,4 +1,4 @@
-import typing
+from typing import List, Optional, Tuple
 from datetime import datetime
 from .file_object import FileObject
 from .helpers import normalize
@@ -9,10 +9,10 @@ class Record(FileObject):
         
         self._name: str = ""
         self._description: str = ""
-        self._validity_start: typing.Optional[datetime] = None
-        self._validity_end: typing.Optional[datetime] = None
+        self._validity_start: Optional[datetime] = None
+        self._validity_end: Optional[datetime] = None
         self._data_folder_path: str = ""
-        self._tags: typing.List[str] = []
+        self._tags: List[str] = []
         self.__dict__.update(kwargs)
         
         self._normal_name : str = normalize(self._name)
@@ -58,6 +58,17 @@ class Record(FileObject):
         attrs = ', '.join(f"{k}={v!r}" for k, v in self.__dict__.items())
         return f"Record({attrs})"
 
+    def __str__(self) -> str:
+        out = "Record("
+        out += f"{self._name} " if self._name else ""
+        out += f"[{self._validity_start} - {self._validity_end}] " if self._validity_start or self._validity_end else ""
+        out += f"C-{self._date_created} " if self._date_created else ""
+        out += f"M-{self._date_modified} " if self._date_modified else ""
+        out += f"\"{self._description}\" " if self._description else ""
+        out += f"{self._tags}, " if self._tags else ""
+        out += f"\"{self._file_name}\" " if self._file_name else ""
+        out += ")"
+        return out
 
     def is_valid(self) -> bool:
         now = datetime.now()
@@ -67,7 +78,7 @@ class Record(FileObject):
             return False
         return True
 
-    def get_tags(self) -> typing.List[str]:
+    def get_tags(self) -> List[str]:
         return self._tags
     
     def add_tag(self, tag: str):
@@ -94,12 +105,12 @@ class Record(FileObject):
     def get_description(self) -> str:
         return self._description
     
-    def set_validity(self, start: typing.Optional[datetime], end: typing.Optional[datetime]):
+    def set_validity(self, start: Optional[datetime], end: Optional[datetime]):
         self._validity_start = start
         self._validity_end = end
         self._update_modified()
         
-    def get_validity(self) -> typing.Tuple[typing.Optional[datetime], typing.Optional[datetime]]:
+    def get_validity(self) -> Tuple[Optional[datetime], Optional[datetime]]:
         return self._validity_start, self._validity_end
     
     def set_data_folder_path(self, path: str):

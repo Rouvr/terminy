@@ -1,5 +1,4 @@
 import os
-import sys
 import winreg
 
 REG_SUBKEY = r"Software\Terminy"

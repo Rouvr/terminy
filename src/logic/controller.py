@@ -1,8 +1,8 @@
-import typing
+
 import os
-import sys
 import json
 
+from typing import Dict, List, Optional, cast
 from datetime import datetime
 
 from .directory import Directory
@@ -31,15 +31,17 @@ class Controller:
         self.recycle_bin: Directory = self._load_or_create_JSON(self.JSON_recycle_bin)
 
 
-        self.clipboard: typing.List[FileObject] = []
+        self.clipboard: List[FileObject] = []
         self.clipboard_action: str = "copy"  # or "cut"
         
         # Build index
         self.record_indexer = RecordIndexer(self.root_directory)
 
-        self.id_cache: typing.Dict[str, FileObject] = {}
+        self.id_cache: Dict[str, FileObject] = {}
         for obj in Directory._walk_records(self.root_directory):
             self.id_cache[obj._id] = obj
+            
+        self.search = self.record_indexer.search
 
     # ------------ Expose root ------------
 
@@ -59,6 +61,10 @@ class Controller:
             return
         data = directory.to_dict()
         blob = json.dumps(data, indent=2)
+        
+        if os.path.exists(path):
+            os.rename(path, path + ".old")
+
         with open(path, "w", encoding="utf-8") as f:
             f.write(blob)
             
@@ -89,14 +95,14 @@ class Controller:
             print("Permanently deleting object from recycle bin.")
             self.id_cache.pop(obj._id, None)
             if obj.parent:
-                parent = typing.cast(Directory, obj.parent)
+                parent = cast(Directory, obj.parent)
                 parent.release_children(obj)
         else:
             print("Moving object to recycle bin.")
             original_path = obj.get_full_path()
             obj._restore_path = original_path 
             if obj.parent:
-                parent = typing.cast(Directory, obj.parent)
+                parent = cast(Directory, obj.parent)
                 parent.release_children(obj)
             self.recycle_bin.inherit_children(obj)
     
@@ -129,7 +135,7 @@ class Controller:
         else:
             print(f"Cannot restore object to '{target_dir._file_name}', name conflict.")
         
-    def add_to_clipboard(self, objs: typing.List[FileObject] | FileObject, action: str = "copy") -> bool:
+    def add_to_clipboard(self, objs: List[FileObject] | FileObject, action: str = "copy") -> bool:
         if objs is None or action not in ("copy", "cut"):
             return False
 
@@ -194,7 +200,7 @@ class Controller:
             setattr(directory, key, value)
         return directory
     
-    def move_file_objects(self, objects: typing.List[FileObject] | FileObject, target_dir: Directory) -> bool:
+    def move_file_objects(self, objects: List[FileObject] | FileObject, target_dir: Directory) -> bool:
         if not objects or target_dir is None:
             return False
 
@@ -218,7 +224,7 @@ class Controller:
     # ID
     # -- All -> All --
         
-    def path_to_file(self, path: str) -> typing.Optional[FileObject]:
+    def path_to_file(self, path: str) -> Optional[FileObject]:
         if not path or path == "/":
             return self.root_directory
         parts = [part for part in path.strip("/").split("/") if part]
@@ -234,25 +240,26 @@ class Controller:
                 return None
         return current
 
-    def path_to_id(self, path: str) -> typing.Optional[str]:
+    def path_to_id(self, path: str) -> Optional[str]:
         file_object = self.path_to_file(path)
         return file_object._id if file_object else None
 
-    def object_to_id(self, obj: FileObject) -> typing.Optional[str]:
+    def object_to_id(self, obj: FileObject) -> Optional[str]:
         if not obj:
             return None
         return obj._id
 
-    def object_to_path(self, obj: FileObject) -> typing.Optional[str]:
+    def object_to_path(self, obj: FileObject) -> Optional[str]:
         if not obj:
             return None
         return obj.get_full_path()
     
-    def id_to_object(self, id: str) -> typing.Optional[FileObject]:
+    def id_to_object(self, id: str) -> Optional[FileObject]:
         if not id:
             return None
         return self.id_cache.get(id, None)
 
-    def id_to_path(self, id: str) -> typing.Optional[str]:
+    def id_to_path(self, id: str) -> Optional[str]:
         obj = self.id_to_object(id)
         return obj.get_full_path() if obj else None
+    

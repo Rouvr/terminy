@@ -1,4 +1,4 @@
-import typing
+from typing import List, cast
 from .record import Record
 from .file_object import FileObject
 from datetime import datetime
@@ -6,7 +6,7 @@ from datetime import datetime
 class Directory(FileObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._children: typing.List[FileObject] = []
+        self._children: List[FileObject] = []
         self.__dict__.update(kwargs)
         
     def __repr__(self) -> str:
@@ -33,24 +33,24 @@ class Directory(FileObject):
 
         children = data.get("_children", [])
         obj._children = [
-                typing.cast(FileObject, Directory.from_dict(child_data)) 
+                cast(FileObject, Directory.from_dict(child_data)) 
                 for child_data in children if isinstance(child_data, dict) and child_data.get("type") == "Directory"
             ] + [
-                 typing.cast(FileObject, Record.from_dict(child_data)) 
+                 cast(FileObject, Record.from_dict(child_data)) 
                 for child_data in children if isinstance(child_data, dict) and child_data.get("type") == "Record"
             ]
         return obj
     
-    def list_directories(self) -> typing.List['Directory']:
+    def list_directories(self) -> List['Directory']:
         return [child for child in self._children if isinstance(child, Directory)]
 
-    def list_records(self) -> typing.List[Record]:
+    def list_records(self) -> List[Record]:
         return [child for child in self._children if isinstance(child, Record)]
 
-    def list_files(self) -> typing.List[FileObject]:
+    def list_files(self) -> List[FileObject]:
         return self._children
     
-    def can_release_children(self, children: typing.List[FileObject] | FileObject) -> bool:
+    def can_release_children(self, children: List[FileObject] | FileObject) -> bool:
         if isinstance(children, FileObject):
             children = [children]
             
@@ -59,13 +59,13 @@ class Directory(FileObject):
                 return False
         return True
     
-    def can_release_children_by_filename(self, filenames: typing.List[str] | str) -> bool:
+    def can_release_children_by_filename(self, filenames: List[str] | str) -> bool:
         if isinstance(filenames, str):
             filenames = [filenames]
         to_release = [child for child in self._children if child._file_name in filenames]
         return self.can_release_children(to_release)
     
-    def release_children(self, children: typing.List[FileObject] | FileObject) -> typing.List[FileObject]:
+    def release_children(self, children: List[FileObject] | FileObject) -> List[FileObject]:
         if isinstance(children, FileObject):
             children = [children]
         released = []
@@ -77,7 +77,7 @@ class Directory(FileObject):
                 released.append(child)
         return released
 
-    def release_children_by_filename(self, filenames: typing.List[str] | str) -> typing.List[FileObject]:
+    def release_children_by_filename(self, filenames: List[str] | str) -> List[FileObject]:
         if isinstance(filenames, str):
             filenames = [filenames]
         to_release = [child for child in self._children if child._file_name in filenames]
@@ -87,7 +87,7 @@ class Directory(FileObject):
     def new_empty_directory() -> 'Directory':
         return Directory(date_created=datetime.now(), date_modified=datetime.now())
 
-    def can_inherit_children(self, child_candidates: typing.List[FileObject] | FileObject) -> bool:
+    def can_inherit_children(self, child_candidates: List[FileObject] | FileObject) -> bool:
         if isinstance(child_candidates, FileObject):
             child_candidates = [child_candidates]
             
@@ -109,7 +109,7 @@ class Directory(FileObject):
         
         return True
     
-    def inherit_children(self, child_candidates: typing.List[FileObject] | FileObject, check: bool = True) -> typing.List[FileObject]:
+    def inherit_children(self, child_candidates: List[FileObject] | FileObject, check: bool = True) -> List[FileObject]:
         """Returns the list of actually inherited children (a subset of candidates)."""
         if isinstance(child_candidates, FileObject):
             child_candidates = [child_candidates]
@@ -122,7 +122,7 @@ class Directory(FileObject):
         for child in child_candidates:
             if child not in self._children:
                 if child.parent:
-                    parent = typing.cast(Directory, child.parent)
+                    parent = cast(Directory, child.parent)
                     parent.release_children(child)
                 self._children.append(child)
                 child.parent = self
@@ -145,7 +145,7 @@ class Directory(FileObject):
     def print_children(self, depth: int = 0):
         print(f"{'  ' * depth}☐ {self.get_file_name()}")
         for child in self.list_records():
-            print(f"{'  ' * (depth + 1)}– {child.get_file_name()}")
+            print(f"{'  ' * (depth + 1)}– {child.get_file_name()}|{child.get_name()}")
         for child in self.list_directories():
             child.print_children(depth + 1)
             

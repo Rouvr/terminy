@@ -1,19 +1,17 @@
-import typing
-import os
-import uuid
-from unidecode import unidecode
+from uuid import uuid4
+from typing import Optional, cast
 from datetime import datetime
 from .helpers import normalize
 
 class FileObject:
     def __init__(self, **kwargs):
-        self._id: str = str(uuid.uuid4())
+        self._id: str = str(uuid4())
         self._file_name: str = ""
         self._date_created: datetime = datetime.now()
         self._date_modified: datetime = datetime.now()
         self._icon_path: str = ""
-        self._restore_path: typing.Optional[str] = None
-        self.parent: typing.Optional[FileObject] = None
+        self._restore_path: Optional[str] = None
+        self.parent: Optional[FileObject] = None
         self.__dict__.update(kwargs)
         self._normal_file_name: str = normalize(self._file_name)
 
@@ -31,7 +29,7 @@ class FileObject:
         obj = cls()
         obj._file_name = data.get("_file_name", "")
         obj._normal_file_name = normalize(obj._file_name)
-        obj._id = str(uuid.uuid4())
+        obj._id = str(uuid4())
         date_created_str = data.get("_date_created")
         obj._date_created = datetime.fromisoformat(date_created_str) if isinstance(date_created_str, str) and date_created_str else datetime.now()
         date_modified_str = data.get("_date_modified")
