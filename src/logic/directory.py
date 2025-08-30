@@ -77,7 +77,7 @@ class Directory(FileObject):
             # O(n) :/
             if child in self._children:
                 self._children.remove(child)
-                child.parent = None
+                child._parent = None
                 released.append(child)
         return released
 
@@ -92,6 +92,7 @@ class Directory(FileObject):
         return Directory(date_created=datetime.now(), date_modified=datetime.now())
 
     def can_inherit_children(self, child_candidates: List[FileObject] | FileObject) -> bool:
+        
         if isinstance(child_candidates, FileObject):
             child_candidates = [child_candidates]
             
@@ -101,6 +102,10 @@ class Directory(FileObject):
         return True
     
     def _can_inherit_child(self, child_candidate: FileObject) -> bool:
+        #root cannot inherit records, only directories
+        if self._parent is None and not isinstance(child_candidate, Directory):
+            return False
+        
         if child_candidate == self:
             return False
         
@@ -125,11 +130,11 @@ class Directory(FileObject):
         inherited = []
         for child in child_candidates:
             if child not in self._children:
-                if child.parent:
+                if child._parent:
                     parent = cast(Directory, child.parent)
                     parent.release_children(child)
                 self._children.append(child)
-                child.parent = self
+                child._parent = self
                 inherited.append(child)
         
         return inherited
@@ -143,7 +148,7 @@ class Directory(FileObject):
         )
         new_dir._children = [child.copy() for child in self._children]
         for child in new_dir._children:
-            child.parent = new_dir
+            child._parent = new_dir
         return new_dir
 
     def print_children(self, depth: int = 0):

@@ -92,7 +92,9 @@ class RecordIndexer:
         self._discard_from(self.file_to_ids, self.file_norm.get(rid))
         self._discard_from(self.desc_to_ids, self.desc_norm.get(rid))
         self._discard_from(self.id_to_ids, self.id_norm.get(rid))
-    
+
+    def all_records(self) -> list[Record]:
+        return list(self.by_id.values())
 
     def _discard_from(self, inv: Dict[str, Set[str]], key: Optional[str]) -> None:
         if not key:

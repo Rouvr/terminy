@@ -10,14 +10,16 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QToolBar, QStatusBar, QHBoxLayout,
     QVBoxLayout, QLineEdit, QPushButton, QLabel, QTreeWidget, QTreeWidgetItem,
     QDockWidget, QListView, QTableView, QSplitter, QFrame, QAbstractItemView,
-    QStyledItemDelegate, QHeaderView, QStyle, QStyleOption, QStyleOptionViewItem
+    QStyledItemDelegate, QHeaderView, QStyle, QStyleOption, QStyleOptionViewItem,
+    QScrollArea
 )
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 
-# ---- Keep GUI aware only of these classes/methods (import lazily, optional) ----
-
+from src.gui.directory import DirectoryGridModel
 from src.gui.language import Language
-from src.logic.controller import  Controller
+from src.gui.record import RecordTableModel
+
+from src.logic.controller import Controller
 from src.logic.directory import Directory
 from src.logic.record import Record
 
@@ -25,9 +27,13 @@ Language.load_translations()
 
 # ---------------------------- Views & Models ----------------------------
 
+class SearchGrid(QListView):
+    """Search results grid (icon mode)."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
 class DirectoryGrid(QListView):
-    """Top pane: grid of directories (icon mode)."""
+    """Grid of directories (icon mode)."""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setViewMode(QListView.ViewMode.IconMode)
@@ -43,51 +49,38 @@ class DirectoryGrid(QListView):
     def clear(self):
         self.model_.clear()
 
-    def populate(self, dir_names: list[str]):
+    def populate(self, directories: list[Directory]):
         self.model_.clear()
-        folder_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
-        for name in dir_names:
-            it = QStandardItem(folder_icon, name)
-            it.setEditable(False)
-            self.model_.appendRow(it)
-
+        for directory in directories:
+            self.model_.appendRow(DirectoryGridModel(directory))
 
 class RecordTable(QTableView):
-    """Bottom pane: table of records (one row = one record)."""
-    COLS = ["Name", "Validity Start", "Validity End", "Created", "Modified", "Tags"]
-
+    """Table of records."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.setAlternatingRowColors(True)
-        self.setSortingEnabled(True)
-        self.horizontalHeader().setStretchLastSection(True)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.verticalHeader().setVisible(False)
-        self.model_ = QStandardItemModel(self)
-        self.model_.setHorizontalHeaderLabels(self.COLS)
-        self.setModel(self.model_)
-        self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.verticalHeader().hide()
 
-    def clear(self):
-        self.model_.removeRows(0, self.model_.rowCount())
-
-    def populate(self, rows: list[tuple[str, str, str, str, str, str]]):
-        self.clear()
-        for r in rows:
-            self.model_.appendRow([QStandardItem(x) for x in r])
-
+    def set_record(self, record: Record):
+        model = RecordTableModel(
+            record=record,
+            active_attrs=RecordTableModel.DEFAULT_ATTRIBUTES,
+            all_headers=RecordTableModel.ALL_ATTRIBUTES,
+            write_attrs=RecordTableModel.WRITE_ATTRIBUTES
+        )
+        self.setModel(model)
 
 # ---------------------------- Main Window ----------------------------
 
 class MainWindow(QMainWindow):
-    def __init__(self, controller: Optional["Controller"] = None):
+    def __init__(self, controller: Controller):
         super().__init__()
         self.setWindowTitle(Language.get("APP_TITLE"))
         self.resize(1100, 700)
 
-        self.controller = controller  # Keep GUI surface area small (Controller/Directory/Record/search)
+        self.controller = controller
 
         # -- Top toolbar (slim) with path box (like Windows Explorer) --
         self.toolbar = QToolBar("Main", self)
@@ -102,7 +95,7 @@ class MainWindow(QMainWindow):
         self.toolbar.addSeparator()
 
         self.pathEdit = QLineEdit(self)
-        self.pathEdit.setPlaceholderText(Language.get(" "))
+        self.pathEdit.setPlaceholderText(Language.get("/"))
         self.pathEdit.setFixedHeight(28)
         pathWrap = QWidget(self)
         h = QHBoxLayout(pathWrap)
@@ -111,7 +104,6 @@ class MainWindow(QMainWindow):
         h.addWidget(self.pathEdit)
         self.toolbar.addWidget(pathWrap)
 
-        # Optional quick actions (placeholders)
         self.toolbar.addSeparator()
         self.actionRefresh = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), Language.get("  "), self)
         self.toolbar.addAction(self.actionRefresh)
@@ -139,37 +131,38 @@ class MainWindow(QMainWindow):
         self.wsRoot = QTreeWidgetItem(self.tree, [Language.get("    ")])
         self.wsRoot.setExpanded(True)
 
-        # -- Central area: vertical split (top grid of directories, bottom table of records) --
+        # -- Central area: scrollable content --
         central = QWidget(self)
         self.setCentralWidget(central)
-
         vlayout = QVBoxLayout(central)
         vlayout.setContentsMargins(8, 8, 8, 8)
 
-        self.split = QSplitter(Qt.Orientation.Vertical, central)
-        vlayout.addWidget(self.split)
+        # Scrollable area
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        vlayout.addWidget(scroll_area)
 
-        # Top: directories grid
-        topFrame = QFrame(self.split)
-        topFrame.setFrameShape(QFrame.Shape.NoFrame)
-        topLayout = QVBoxLayout(topFrame)
-        topLayout.setContentsMargins(0, 0, 0, 4)
-        topLayout.addWidget(QLabel(Language.get("   "), topFrame))
-        self.dirGrid = DirectoryGrid(topFrame)
-        topLayout.addWidget(self.dirGrid)
+        # Content widget inside scroll area
+        content_widget = QWidget()
+        scroll_area.setWidget(content_widget)
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Bottom: records table
-        bottomFrame = QFrame(self.split)
-        bottomFrame.setFrameShape(QFrame.Shape.NoFrame)
-        bottomLayout = QVBoxLayout(bottomFrame)
-        bottomLayout.setContentsMargins(0, 4, 0, 0)
-        bottomLayout.addWidget(QLabel(Language.get("    "), bottomFrame))
-        self.recTable = RecordTable(bottomFrame)
-        bottomLayout.addWidget(self.recTable)
+        # Search grid
+        self.search_grid = SearchGrid(self)
+        content_layout.addWidget(QLabel(Language.get("SEARCH_RESULTS")))
+        content_layout.addWidget(self.search_grid)
 
-        self.split.addWidget(topFrame)
-        self.split.addWidget(bottomFrame)
-        self.split.setSizes([380, 320])
+        # Directory grid
+        self.directory_grid = DirectoryGrid(self)
+        content_layout.addWidget(QLabel(Language.get("DIRECTORIES")))
+        content_layout.addWidget(self.directory_grid)
+
+        # Records table
+        content_layout.addWidget(QLabel(Language.get("RECORDS")))
+        self.record_tables = []
+        if self.controller:
+            self._populate_content()
 
         # Simple style to keep it “slim”
         self.setStyleSheet("""
@@ -178,69 +171,81 @@ class MainWindow(QMainWindow):
             QLabel { color: palette(mid); font-weight: 600; }
             QTreeWidget { border: 1px solid palette(midlight); }
             QListView, QTableView { border: 1px solid palette(midlight); }
+            QScrollArea { border: none; }
         """)
 
-        # Placeholder population (empty tree + empty views)
+        # Placeholder population (empty tree)
         self._populate_mock_left_tree()
-        self._populate_mock_center()
 
         # Hook up trivial no-op slots (future wiring to Controller)
-        self.actionRefresh.triggered.connect(self._noop)
-        self.actionBack.triggered.connect(self._noop)
-        self.actionForward.triggered.connect(self._noop)
-        self.actionUp.triggered.connect(self._noop)
+        self.actionRefresh.triggered.connect(self._refresh)
+        self.actionBack.triggered.connect(self._navigate_back)
+        self.actionForward.triggered.connect(self._navigate_forward)
+        self.actionUp.triggered.connect(self._navigate_up)
 
-    # ------------------ Placeholder population ------------------
+    # ------------------ Population methods ------------------
 
     def _populate_mock_left_tree(self):
-        # Favorites (placeholder items)
         for name in ["Home", "Invoices", "Contracts"]:
             QTreeWidgetItem(self.favRoot, [name])
-        # Workspace (placeholder root)
         QTreeWidgetItem(self.wsRoot, ["/"])
 
-    def _populate_mock_center(self):
-        # Directories grid (placeholder names)
-        self.dirGrid.populate(["Invoices", "Contracts", "Archive", "Suppliers"])
+    def _populate_content(self):
+        # Populate directory grid
+        directories = self.controller.get_current_directory_list()
+        self.directory_grid.populate(directories)
 
-        # Records table (placeholder rows)
-        rows = [
-            ("Faktura 2025-08-001", "2025-07-25", "2025-09-01", "2025-07-20", "2025-08-24", "invoice, construction"),
-            ("Faktura 2025-08-002", "2025-08-01", "2025-09-05", "2025-08-01", "2025-08-24", "invoice, machinery"),
-            ("Smlouva s ACME",      "2025-06-01", "",           "2025-06-01", "2025-08-12", "contract, service"),
-        ]
-        self.recTable.populate(rows)
+        # Populate record tables
+        for table in self.record_tables:
+            table.setParent(None)
+        self.record_tables.clear()
+
+        records = self.controller.get_current_record_list()
+        content_widget = self.centralWidget().layout().itemAt(0).widget().widget()
+        content_layout = content_widget.layout()
+        for record in records:
+            table = RecordTable(self)
+            table.set_record(record)
+            content_layout.addWidget(table)
+            self.record_tables.append(table)
+
+    # ------------------ Navigation methods ------------------
+
+    def _refresh(self):
+        if self.controller:
+            self._populate_content()
+            self.status.showMessage(Language.get("REFRESHED"), 1500)
+
+    def _navigate_back(self):
+        if self.controller and self.controller.navigate_back():
+            self._populate_content()
+            self.pathEdit.setText(self.controller.get_current_directory().get_full_path())
+            self.status.showMessage(Language.get("NAVIGATED_BACK"), 1500)
+
+    def _navigate_forward(self):
+        if self.controller and self.controller.navigate_forward():
+            self._populate_content()
+            self.pathEdit.setText(self.controller.get_current_directory().get_full_path())
+            self.status.showMessage(Language.get("NAVIGATED_FORWARD"), 1500)
+
+    def _navigate_up(self):
+        if self.controller and self.controller.navigate_up():
+            self._populate_content()
+            self.pathEdit.setText(self.controller.get_current_directory().get_full_path())
+            self.status.showMessage(Language.get("NAVIGATED_UP"), 1500)
 
     # ------------------ Future wiring points ------------------
 
     def set_controller(self, controller: "Controller"):
-        """Optional: inject your controller later (GUI stays narrow)."""
         self.controller = controller
-        # Example future hookups (not implemented now):
-        # - self._reload_from_directory(controller.get_root())
-        # - connect search box to controller.search
+        self._populate_content()
+        self.pathEdit.setText(self.controller.get_current_directory().get_full_path())
 
     def _reload_from_directory(self, directory: "Directory"):
-        """Populate dir grid & record table from a real Directory (future)."""
-        # Top grid: names of child directories
-        dir_names = [d._file_name for d in directory.list_directories()]
-        self.dirGrid.populate(dir_names)
-        # Bottom table: records with key fields
-        rows = []
-        for r in directory.list_records():
-            rows.append((
-                getattr(r, "_name", r._file_name),
-                _fmt_dt(getattr(r, "_validity_start", None)),
-                _fmt_dt(getattr(r, "_validity_end", None)),
-                _fmt_dt(getattr(r, "_date_created", None)),
-                _fmt_dt(getattr(r, "_date_modified", None)),
-                ", ".join(getattr(r, "_tags", [])),
-            ))
-        self.recTable.populate(rows)
-
-    def _noop(self):
-        self.status.showMessage("Not implemented yet", 1500)
-
+        if self.controller:
+            self.controller.navigate_to(directory)
+            self._populate_content()
+            self.pathEdit.setText(directory.get_full_path())
 
 # ---------------------------- utils ----------------------------
 
@@ -250,13 +255,12 @@ def _fmt_dt(dt) -> str:
     except Exception:
         return ""
 
-
 # ---------------------------- entry point ----------------------------
 
 def gui_main():
-    print(Language.get("TEST_MSG"))  # Example of using Language class
+    print(Language.get("TEST_MSG"))
     app = QApplication(sys.argv)
-    win = MainWindow()
+    win = MainWindow(Controller(data_path=r"C:\Users\Filip\AppData\Local\Terminy"))
     win.show()
     sys.exit(app.exec())
 

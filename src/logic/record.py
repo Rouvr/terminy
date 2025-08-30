@@ -91,6 +91,10 @@ class Record(FileObject):
             self._tags.remove(tag)
             self._update_modified() 
             
+    def set_tags(self, tags: List[str]):
+        self._tags = tags
+        self._update_modified()
+
     def set_name(self, name: str):
         self._name = name
         self._update_modified()

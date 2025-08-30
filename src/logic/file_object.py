@@ -11,18 +11,9 @@ class FileObject:
         self._date_modified: datetime = datetime.now()
         self._icon_path: str = ""
         self._restore_path: Optional[str] = None
-        self.parent: Optional[FileObject] = None
+        self._parent: Optional[FileObject] = None
         self.__dict__.update(kwargs)
         self._normal_file_name: str = normalize(self._file_name)
-
-    def to_dict(self) -> dict:
-        return {
-            "type": "FileObject",
-            "_file_name": self._file_name,
-            "_date_created": self._date_created.isoformat(),
-            "_date_modified": self._date_modified.isoformat(),
-            "_icon_path": self._icon_path,
-        }
 
     @classmethod
     def from_dict(cls, data: dict) -> 'FileObject':
@@ -37,13 +28,38 @@ class FileObject:
         
         obj._icon_path = data.get("_icon_path", "")
         return obj
-      
+    
+    def to_dict(self) -> dict:
+        return {
+            "type": "FileObject",
+            "_file_name": self._file_name,
+            "_date_created": self._date_created.isoformat(),
+            "_date_modified": self._date_modified.isoformat(),
+            "_icon_path": self._icon_path,
+        }
+
     def _update_modified(self):
         self._date_modified = datetime.now()
 
     def __repr__(self) -> str:
         attrs = ', '.join(f"{k}={v!r}" for k, v in self.__dict__.items())
         return f"FileObject({attrs})"
+    
+    def is_child_of(self, other: 'FileObject') -> bool:
+        parent = self._parent
+        while parent:
+            if parent == other:
+                return True
+            parent = parent._parent
+        return False
+    
+    def copy(self) -> 'FileObject':
+        return FileObject(
+            _file_name=self._file_name,
+            _date_created=self._date_created,
+            _date_modified=self._date_modified,
+            _icon_path=self._icon_path,
+        )
     
     def get_created_at(self) -> datetime:
         return self._date_created
@@ -58,14 +74,6 @@ class FileObject:
         self._icon_path = path
         self._update_modified()
         
-    def is_child_of(self, other: 'FileObject') -> bool:
-        parent = self.parent
-        while parent:
-            if parent == other:
-                return True
-            parent = parent.parent
-        return False
-
     def get_file_name(self) -> str:
         return self._file_name
     
@@ -78,15 +86,8 @@ class FileObject:
         current = self
         while current:
             parts.append(current._file_name)
-            current = current.parent
+            current = current._parent
         return '/' + '/'.join(reversed(parts)).strip('/')
     
-    def copy(self) -> 'FileObject':
-        return FileObject(
-            _file_name=self._file_name,
-            _date_created=self._date_created,
-            _date_modified=self._date_modified,
-            _icon_path=self._icon_path,
-        )
     def get_id(self) -> str:
         return self._id
