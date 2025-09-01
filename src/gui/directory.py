@@ -21,7 +21,7 @@ from src.logic.controller import  Controller
 from src.logic.directory import Directory
 from src.logic.record import Record
 
-class DirectoryGridModel(QStandardItem):
+class DirectoryGridItem(QStandardItem):
     default_icon = QIcon.fromTheme("folder")
 
     def __init__(self, directory: Directory, parent=None):
@@ -29,3 +29,24 @@ class DirectoryGridModel(QStandardItem):
         self.directory = directory
         self.setEditable(False)
 
+class DirectoryGrid(QListView):
+    """Grid of directories (icon mode)."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setViewMode(QListView.ViewMode.IconMode)
+        self.setResizeMode(QListView.ResizeMode.Adjust)
+        self.setMovement(QListView.Movement.Static)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.setIconSize(QSize(48, 48))
+        self.setSpacing(16)
+        self.setUniformItemSizes(True)
+        self.model_ = QStandardItemModel(self)
+        self.setModel(self.model_)
+
+    def clear(self):
+        self.model_.clear()
+
+    def populate(self, directories: list[Directory]):
+        self.model_.clear()
+        for directory in directories:
+            self.model_.appendRow(DirectoryGridItem(directory))

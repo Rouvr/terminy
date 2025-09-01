@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 
-# ---- Keep GUI aware only of these classes/methods (import lazily, optional) ----
 
 from src.gui.language import Language
 from src.logic.controller import  Controller
@@ -22,9 +21,11 @@ from src.logic.directory import Directory
 from src.logic.record import Record
 
 
-    
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt  # Assuming PySide6; adjust for PyQt6 if needed
+# Assume Language is imported/defined elsewhere
 
 class RecordTableModel(QAbstractTableModel):
+
     ALL_ATTRIBUTES = {
         "name":            Language.get("NAME"),
         "description":     Language.get("DESCRIPTION"),
@@ -66,39 +67,44 @@ class RecordTableModel(QAbstractTableModel):
         "validity_end",
         "tags",
     ]
-    
-    def __init__(self, record, active_attrs, all_headers, write_attrs, parent=None):
+
+    def __init__(self, parent=None, *, records=None, active_attrs=DEFAULT_ATTRIBUTES, all_headers=ALL_ATTRIBUTES, write_attrs=WRITE_ATTRIBUTES):
         super().__init__(parent)
-        self.record = record
-        self.active_attrs = list(active_attrs)          # ordered list of keys
+        self.records = records or []  # List[Record]
+        self.active_attrs = list(active_attrs)  # ordered list of keys
         self.headers = [all_headers[a] for a in self.active_attrs]
         self.write_attrs = set(write_attrs)
 
     # ----- shape -----
-    def rowCount(self, parent=QModelIndex()): return 1
-    def columnCount(self, parent=QModelIndex()): return len(self.active_attrs)
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.records)
+
+    def columnCount(self, parent=QModelIndex()):
+        return len(self.active_attrs)
 
     # ----- data -----
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        # Ensure Qt.DisplayRole and Qt.EditRole are accessible
         if not index.isValid() or role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return None
+        record = self.records[index.row()]
         attr = self.active_attrs[index.column()]
-        return self._get(attr)
+        return self._get(record, attr)
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
         if role != Qt.ItemDataRole.EditRole or not index.isValid():
             return False
+        record = self.records[index.row()]
         attr = self.active_attrs[index.column()]
         if attr not in self.write_attrs:
             return False
-        self._set(attr, value)
+        self._set(record, attr, value)
         # re-read canonical value
         self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole])
         return True
 
     def flags(self, index):
-        if not index.isValid(): return Qt.ItemFlag.NoItemFlags
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
         attr = self.active_attrs[index.column()]
         f = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
         if attr in self.write_attrs:
@@ -106,48 +112,88 @@ class RecordTableModel(QAbstractTableModel):
         return f
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if role != Qt.ItemDataRole.DisplayRole: return None
+        if role != Qt.ItemDataRole.DisplayRole:
+            return None
         if orientation == Qt.Orientation.Horizontal:
             return self.headers[section]
         return None
 
-    # ----- API -----
-    def reload(self, attrs=None):
-        # notify the view that data changed; efficient batching
-        if not self.active_attrs: return
-        left = self.index(0, 0)
-        right = self.index(0, len(self.active_attrs)-1)
-        self.dataChanged.emit(left, right, [Qt.ItemDataRole.DisplayRole])
+    # ----- API for managing records -----
+    def get(self, index):
+        """Return the Record at the given row index."""
+        if 0 <= index < len(self.records):
+            return self.records[index]
+        raise IndexError("Index out of range")
+
+    def add(self, record):
+        """Add a new Record as a row."""
+        row = len(self.records)
+        self.beginInsertRows(QModelIndex(), row, row)
+        self.records.append(record)
+        self.endInsertRows()
+
+    def remove(self, index):
+        """Remove the row at the given index."""
+        if 0 <= index < len(self.records):
+            self.beginRemoveRows(QModelIndex(), index, index)
+            del self.records[index]
+            self.endRemoveRows()
+        else:
+            raise IndexError("Index out of range")
+
+    def clear(self):
+        """Clear all rows."""
+        if self.records:
+            self.beginRemoveRows(QModelIndex(), 0, len(self.records) - 1)
+            self.records.clear()
+            self.endRemoveRows()
+
+    def populate(self, records):
+        """Replace all rows with the given list of Records."""
+        self.clear()
+        if records:
+            self.beginInsertRows(QModelIndex(), 0, len(records) - 1)
+            self.records.extend(records)
+            self.endInsertRows()
+
+    def reload(self):
+        """Notify views that all data has changed (e.g., after external modifications)."""
+        if not self.records or not self.active_attrs:
+            return
+        top_left = self.index(0, 0)
+        bottom_right = self.index(len(self.records) - 1, len(self.active_attrs) - 1)
+        self.dataChanged.emit(top_left, bottom_right, [Qt.ItemDataRole.DisplayRole])
 
     def set_active_attrs(self, attrs, all_headers):
+        """Update the active attributes (columns)."""
         self.beginResetModel()
         self.active_attrs = list(attrs)
         self.headers = [all_headers[a] for a in self.active_attrs]
         self.endResetModel()
 
-    # ----- your existing get/set dispatch -----
-    def _get(self, attr):
+    # ----- get/set dispatch (adapted from RecordRow, now takes record as param) -----
+    def _get(self, record, attr):
         return {
-            "name":             self.record.get_name,
-            "description":      self.record.get_description,
-            "validity_start":   lambda: self.record.get_validity()[0],
-            "validity_end":     lambda: self.record.get_validity()[1],
-            "tags":             self.record.get_tags,
-            "data_folder_path": self.record.get_data_folder_path,
-            "file_name":        self.record.get_file_name,
-            "icon_path":        self.record.get_icon_path,
-            "created":          getattr(self.record, "get_created", lambda: None),
-            "modified":         getattr(self.record, "get_modified", lambda: None),
+            "name":             record.get_name,
+            "description":      record.get_description,
+            "validity_start":   lambda: record.get_validity()[0],
+            "validity_end":     lambda: record.get_validity()[1],
+            "tags":             record.get_tags,
+            "data_folder_path": record.get_data_folder_path,
+            "file_name":        record.get_file_name,
+            "icon_path":        record.get_icon_path,
+            "created":          getattr(record, "get_created", lambda: None),
+            "modified":         getattr(record, "get_modified", lambda: None),
         }.get(attr, lambda: None)()
 
-    def _set(self, attr, value):
+    def _set(self, record, attr, value):
         {
-            "name":             self.record.set_name,
-            "description":      self.record.set_description,
-            "validity_start":   lambda v: self.record.set_validity(start=v, end=self.record.get_validity()[1]),
-            "validity_end":     lambda v: self.record.set_validity(start=self.record.get_validity()[0], end=v),
-            "tags":             self.record.set_tags,
-            "data_folder_path": self.record.set_data_folder_path,
-            "file_name":        self.record.set_file_name,
-            "icon_path":        self.record.set_icon_path,
+            "name":             record.set_name,
+            "description":      record.set_description,
+            "validity_start":   lambda v: record.set_validity(start=v, end=record.get_validity()[1]),
+            "validity_end":     lambda v: record.set_validity(start=record.get_validity()[0], end=v),
+            "tags":             record.set_tags,
+            "data_folder_path": record.set_data_folder_path,
+            "file_name":        record.set_file_name,
+            "icon_path":        record.set_icon_path,
         }.get(attr, lambda *_: None)(value)

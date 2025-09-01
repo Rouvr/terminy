@@ -115,7 +115,9 @@ class Controller:
 
     def get_current_record_list(self) -> list[Record]:
         if self.current_dir == self.root_directory:
+            logging.info(f"[Controller][{datetime.now()}] Fetching all records in root directory.")
             return self.record_indexer.all_records()
+        logging.info(f"[Controller][{datetime.now()}] Fetching records in directory: {self.current_dir._file_name}")
         return self.current_dir.list_records() if self.current_dir else []
 
     # ------------ JSON + state Operations ------------

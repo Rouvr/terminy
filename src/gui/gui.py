@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
+from typing import List, Optional, cast
 
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QAction, QIcon
@@ -11,11 +11,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QLineEdit, QPushButton, QLabel, QTreeWidget, QTreeWidgetItem,
     QDockWidget, QListView, QTableView, QSplitter, QFrame, QAbstractItemView,
     QStyledItemDelegate, QHeaderView, QStyle, QStyleOption, QStyleOptionViewItem,
-    QScrollArea
+    QSizePolicy
 )
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 
-from src.gui.directory import DirectoryGridModel
+from src.gui.directory import DirectoryGrid
 from src.gui.language import Language
 from src.gui.record import RecordTableModel
 
@@ -24,53 +24,6 @@ from src.logic.directory import Directory
 from src.logic.record import Record
 
 Language.load_translations()
-
-# ---------------------------- Views & Models ----------------------------
-
-class SearchGrid(QListView):
-    """Search results grid (icon mode)."""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-class DirectoryGrid(QListView):
-    """Grid of directories (icon mode)."""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setViewMode(QListView.ViewMode.IconMode)
-        self.setResizeMode(QListView.ResizeMode.Adjust)
-        self.setMovement(QListView.Movement.Static)
-        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.setIconSize(QSize(48, 48))
-        self.setSpacing(16)
-        self.setUniformItemSizes(True)
-        self.model_ = QStandardItemModel(self)
-        self.setModel(self.model_)
-
-    def clear(self):
-        self.model_.clear()
-
-    def populate(self, directories: list[Directory]):
-        self.model_.clear()
-        for directory in directories:
-            self.model_.appendRow(DirectoryGridModel(directory))
-
-class RecordTable(QTableView):
-    """Table of records."""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.verticalHeader().hide()
-
-    def set_record(self, record: Record):
-        model = RecordTableModel(
-            record=record,
-            active_attrs=RecordTableModel.DEFAULT_ATTRIBUTES,
-            all_headers=RecordTableModel.ALL_ATTRIBUTES,
-            write_attrs=RecordTableModel.WRITE_ATTRIBUTES
-        )
-        self.setModel(model)
 
 # ---------------------------- Main Window ----------------------------
 
@@ -127,42 +80,54 @@ class MainWindow(QMainWindow):
         # Favorites section
         self.favRoot = QTreeWidgetItem(self.tree, [Language.get("   ")])
         self.favRoot.setExpanded(True)
+        
         # Workspace section
         self.wsRoot = QTreeWidgetItem(self.tree, [Language.get("    ")])
         self.wsRoot.setExpanded(True)
 
-        # -- Central area: scrollable content --
+        # -- Central area: splitter for directories and records --
         central = QWidget(self)
         self.setCentralWidget(central)
         vlayout = QVBoxLayout(central)
         vlayout.setContentsMargins(8, 8, 8, 8)
 
-        # Scrollable area
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
-        vlayout.addWidget(scroll_area)
+        # Splitter for directory grid and record table
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+        vlayout.addWidget(splitter)
 
-        # Content widget inside scroll area
-        content_widget = QWidget()
-        scroll_area.setWidget(content_widget)
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        # Search grid
-        self.search_grid = SearchGrid(self)
-        content_layout.addWidget(QLabel(Language.get("SEARCH_RESULTS")))
-        content_layout.addWidget(self.search_grid)
-
-        # Directory grid
+        # Directory section (wrap in frame for label + grid)
+        dir_frame = QFrame(self)
+        dir_layout = QVBoxLayout(dir_frame)
+        dir_layout.setContentsMargins(0, 0, 0, 0)
+        dir_layout.setSpacing(8)
+        dir_label = QLabel(Language.get("DIRECTORIES"))
+        dir_layout.addWidget(dir_label)
         self.directory_grid = DirectoryGrid(self)
-        content_layout.addWidget(QLabel(Language.get("DIRECTORIES")))
-        content_layout.addWidget(self.directory_grid)
+        self.directory_grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)  # Shrink vertically to content
+        dir_layout.addWidget(self.directory_grid)
+        splitter.addWidget(dir_frame)
 
-        # Records table
-        content_layout.addWidget(QLabel(Language.get("RECORDS")))
-        self.record_tables = []
-        if self.controller:
-            self._populate_content()
+        # Record section (wrap in frame for label + table)
+        rec_frame = QFrame(self)
+        rec_layout = QVBoxLayout(rec_frame)
+        rec_layout.setContentsMargins(0, 0, 0, 0)
+        rec_layout.setSpacing(8)
+        rec_label = QLabel(Language.get("RECORDS"))
+        rec_layout.addWidget(rec_label)
+        self.record_table_model = RecordTableModel(self)  # Records populated later
+        self.record_table_view = QTableView(self)
+        self.record_table_view.setModel(self.record_table_model)
+        self.record_table_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)  # Expand to fill
+        self.record_table_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.record_table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        rec_layout.addWidget(self.record_table_view)
+        splitter.addWidget(rec_frame)
+
+        # Configure splitter: small initial height for directories, records expand
+        splitter.setSizes([150, 500])  # Adjust 150 based on your icon size (e.g., 48px icons + spacing)
+        splitter.setCollapsible(0, False)  # Prevent collapsing directories
+        splitter.setStretchFactor(0, 0)  # Directories don't stretch
+        splitter.setStretchFactor(1, 1)  # Records stretch to fill
 
         # Simple style to keep it “slim”
         self.setStyleSheet("""
@@ -171,17 +136,19 @@ class MainWindow(QMainWindow):
             QLabel { color: palette(mid); font-weight: 600; }
             QTreeWidget { border: 1px solid palette(midlight); }
             QListView, QTableView { border: 1px solid palette(midlight); }
-            QScrollArea { border: none; }
+            QSplitter::handle { background: palette(midlight); height: 8px; }
         """)
 
         # Placeholder population (empty tree)
         self._populate_mock_left_tree()
 
-        # Hook up trivial no-op slots (future wiring to Controller)
+        # Hook up navigation slots
         self.actionRefresh.triggered.connect(self._refresh)
         self.actionBack.triggered.connect(self._navigate_back)
         self.actionForward.triggered.connect(self._navigate_forward)
         self.actionUp.triggered.connect(self._navigate_up)
+        
+        self._populate_content()
 
     # ------------------ Population methods ------------------
 
@@ -194,20 +161,11 @@ class MainWindow(QMainWindow):
         # Populate directory grid
         directories = self.controller.get_current_directory_list()
         self.directory_grid.populate(directories)
+        self.directory_grid.viewport().update()  # Force layout refresh
 
-        # Populate record tables
-        for table in self.record_tables:
-            table.setParent(None)
-        self.record_tables.clear()
-
-        records = self.controller.get_current_record_list()
-        content_widget = self.centralWidget().layout().itemAt(0).widget().widget()
-        content_layout = content_widget.layout()
-        for record in records:
-            table = RecordTable(self)
-            table.set_record(record)
-            content_layout.addWidget(table)
-            self.record_tables.append(table)
+        # Populate record table
+        records = self.controller.get_current_record_list()  # Assuming Controller has this method
+        self.record_table_model.populate(records)
 
     # ------------------ Navigation methods ------------------
 
