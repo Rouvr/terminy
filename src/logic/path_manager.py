@@ -80,20 +80,19 @@ def remove_registry(per_user: bool = True):
 
 class PathManager:
     
-    initialized : bool = True if get_base_path_registry() else False
 
-    
     def __init__(self):
-        pass
+        self.base_path: str | None = get_base_path_registry()
+        self.initialized : bool = bool(self.base_path)
 
     def __repr__(self):
         str = ""
-        str += f"PathManager(initialized={self.initialized}, base_path={PathManager.base_path})"
+        str += f"PathManager(initialized={self.initialized}, base_path={self.base_path})"
         str += f"Registry={get_base_path_registry()}"
 
     def is_initialized(self) -> bool:
-        return PathManager.initialized
-    
+        return self.initialized
+
     def set_path(self, path: str):
         PathManager.base_path = path
         PathManager.initialized = True
@@ -102,11 +101,12 @@ class PathManager:
         set_base_path_registry(path)
     
     def get_base_path(self) -> str:
-        if not self.is_initialized():
+        if not self.is_initialized() or not self.base_path: # second half only for python type checker
             logger.warning(f"[Path Manager][{datetime.now()}] get_base_path: PathManager is not initialized.")
             logger.warning(f"[Path Manager][{datetime.now()}] PathManager{repr(self)}")
             raise Exception("PathManager is not initialized. Please set the path first.")
-        return os.path.expandvars(PathManager.base_path)
+
+        return os.path.expandvars(self.base_path)
 
     def get_data_path(self) -> str:
         return os.path.join(self.get_base_path(), PATH_DATA_RELATIVE_DIR)

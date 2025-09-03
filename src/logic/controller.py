@@ -13,24 +13,30 @@ from .helpers import normalize
 from .path_manager import PathManager
 from .file_object import FileObject
 from .indexer import RecordIndexer
+from .storage import Storage
 
 logger = logging.getLogger(__name__)
 logger.addHandler(RotatingFileHandler(
     "terminy.log", maxBytes=1024*1024*5, backupCount=5, encoding="utf-8"
 ))
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 
 class Controller:
     def __init__(self, **kwargs) -> None:
-        logger.info(f"[Controller][{datetime.now()}] Initializing Controller...")
+        
+        # Initialize PathManager and determine data/config paths
+        logger.debug(f"[Controller][{datetime.now()}] Initializing Controller...")
         self.path_manager = PathManager()
         
         data_path = kwargs.get("data_path", "")
+        config_path = kwargs.get("config_path", "")
 
         if self.path_manager.is_initialized() and not data_path:
             data_path = self.path_manager.get_data_path()
+        if self.path_manager.is_initialized() and not config_path:
+            config_path = self.path_manager.get_config_path()
 
         logger.info(f"[Controller][{datetime.now()}] Final data path: {data_path}")
         logger.info(f"[Controller][{datetime.now()}] Resolved data_path: {os.path.realpath(data_path)}")
@@ -38,31 +44,52 @@ class Controller:
         if not data_path:
             logger.error(f"[Controller][{datetime.now()}] Controller requires a data path. Please set it via PathManager or pass 'data_path' argument.")
             raise Exception("Controller requires a data path. Please set it via PathManager or pass 'data_path' argument.")
-        
-        self.JSON_file = os.path.join(data_path, "data.json")
+
+        self.JSON_config = os.path.join(data_path, "config.json")
+        self.JSON_data = os.path.join(data_path, "data.json")
         self.JSON_recycle_bin = os.path.join(data_path, "recycle_bin.json")
-        logger.info(f"[Controller][{datetime.now()}] Json files: {self.JSON_file}, {self.JSON_recycle_bin}")
+        logger.debug(f"[Controller][{datetime.now()}] Json files: {self.JSON_data}, {self.JSON_recycle_bin}")
 
-        self.root_directory: Directory = self._load_or_create_JSON(self.JSON_file)
-        self.recycle_bin: Directory = self._load_or_create_JSON(self.JSON_recycle_bin)
+        # Load root directory
+        try:
+            self.root_directory: Directory = Storage.load_dir(self.JSON_data)
+        except (FileNotFoundError, ValueError) as e:
+            logger.error(f"[Controller][{datetime.now()}] Error loading root directory: {e}")
+            self.root_directory = Directory.new_empty_directory()
 
+        # Load recycle bin
+        try:
+            self.recycle_bin: Directory = Storage.load_dir(self.JSON_recycle_bin)
+        except (FileNotFoundError, ValueError) as e:
+            logger.error(f"[Controller][{datetime.now()}] Error loading recycle bin: {e}")
+            self.recycle_bin = Directory.new_empty_directory()
 
-        self.clipboard: List[FileObject] = []
-        self.clipboard_action: str = "copy"  # or "cut"
-        
+        # Load config
+        try:
+            self.config: dict = Storage.load_config(self.JSON_config)
+        except (FileNotFoundError, ValueError) as e:
+            logger.error(f"[Controller][{datetime.now()}] Error loading config: {e}")
+            self.config = {}
+
         # Build index
         self.record_indexer = RecordIndexer(self.root_directory)
 
         self.id_cache: Dict[str, FileObject] = {}
         for obj in Directory._walk_records(self.root_directory):
             self.id_cache[obj._id] = obj
-            
         self.search = self.record_indexer.search
 
+
+        # Working variables 
+        self.clipboard: List[FileObject] = []
+        self.clipboard_action: str = "copy"  # or "cut"
+        
         self.current_dir: Directory = self.root_directory
         self.dir_history = [self.current_dir]
         self.dir_history_index = 0
-
+        
+        self._favorites = []
+        self._load_favorites()
 
     # ------------ Directories ------------
 
@@ -115,75 +142,43 @@ class Controller:
 
     def get_current_record_list(self) -> list[Record]:
         if self.current_dir == self.root_directory:
-            logging.info(f"[Controller][{datetime.now()}] Fetching all records in root directory.")
+            logging.debug(f"[Controller][{datetime.now()}] Fetching all records in root directory.")
             return self.record_indexer.all_records()
-        logging.info(f"[Controller][{datetime.now()}] Fetching records in directory: {self.current_dir._file_name}")
+        logging.debug(f"[Controller][{datetime.now()}] Fetching records in directory: {self.current_dir._file_name}")
         return self.current_dir.list_records() if self.current_dir else []
 
-    # ------------ JSON + state Operations ------------
+    # ------------ Favorites ------------
 
-    def _load_or_create_JSON(self, path: str) -> Directory:
-        logger.info(f"[Controller][{datetime.now()}] Loading or creating JSON at {path}")
-        # Ensure the parent directory exists
-        parent_dir = os.path.dirname(path)
-        logger.info(f"[Controller][{datetime.now()}] Checking parent directory: {parent_dir}")
-        if not os.path.exists(parent_dir) or not os.path.isdir(parent_dir):
-            logger.info(f"[Controller][{datetime.now()}] Parent directory {parent_dir} does not exist or is not a directory, creating it.")
-            os.makedirs(parent_dir, exist_ok=True)
-        
-        # Double-check if the file exists
-        if not os.path.exists(path) or not os.path.isfile(path):
-            logger.info(f"[Controller][{datetime.now()}] File {path} does not exist or is not a file, creating new empty directory.")
-            d = Directory.new_empty_directory()
-            try:
-                self.save_dir(d, path)
-                logger.info(f"[Controller][{datetime.now()}] Saved new directory to {path}")
-            except Exception as e:
-                logger.error(f"[Controller][{datetime.now()}] Error saving directory to {path}: {e}")
-                raise
-        else:
-            logger.info(f"[Controller][{datetime.now()}] File {path} exists, loading directory.")
+    def _load_favorites(self):
+        self._favorites: List[Directory] = []
 
-        logger.info(f"[Controller][{datetime.now()}] Real path = {os.path.realpath(path)}")
+        for path in self.config.get("favorites", []):
+            file = self.path_to_object(path)
+            if file and isinstance(file, Directory):
+                self._favorites.append(file)
 
-        try:
-            return self.load(path)
-        except Exception as e:
-            logger.error(f"[Controller][{datetime.now()}] Error loading directory from {path}: {e}")
-            raise
+    def add_favorite(self, file: Directory):
+        if file and file not in self._favorites:
+            self._favorites.append(file)
+        self.config["favorites"] = [self.object_to_path(fav) for fav in self._favorites]
 
-    def save_dir(self,directory : Directory, path: str):
-        if directory is None:
-            logger.error(f"[Controller][{datetime.now()}] save_dir: directory is None, cannot save.")
-            return
-        data = directory.to_dict()
-        blob = json.dumps(data, indent=2)
-        
-        
-        if os.path.exists(path):
-            os.rename(path, path + ".old")
+    def remove_favorite(self, file: Directory):
+        if file in self._favorites:
+            self._favorites.remove(file)
+            self.config["favorites"] = [self.object_to_path(fav) for fav in self._favorites]
 
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        logger.info(f"Writing to {path}")
-        with open(path, "w+", encoding="utf-8") as f:
-            f.write(blob)
-            
-    def load(self, path: str) -> Directory:
-        if not os.path.exists(path):
-            logger.error(f"Data file not found: {path}")
-            raise FileNotFoundError(f"Data file not found: {path}")
-        with open(path, "r", encoding="utf-8") as f:
-            blob = f.read()
-        data = json.loads(blob)
-        if not data:
-            logger.warning(f"No data found in {path}, creating new empty directory.")
-            return  Directory.new_empty_directory()
-        return Directory.from_dict(data)
-        
-    def save_state(self):
-        self.save_dir(self.root_directory, self.JSON_file)
-        self.save_dir(self.recycle_bin, self.JSON_recycle_bin)
+    def get_favorites(self) -> List[Directory]:
+        return self._favorites
     
+
+    # ------------ state Operations ------------
+
+    def save_state(self):
+        Storage.save_dir(self.root_directory, self.JSON_data)
+        Storage.save_dir(self.recycle_bin, self.JSON_recycle_bin)
+        Storage.save_config(self.JSON_config, self.config)
+        logger.info(f"[Controller][{datetime.now()}] State saved successfully.")
+
     def exit_and_save(self):
         self.save_state()
         exit(0)
@@ -194,7 +189,7 @@ class Controller:
         if obj is None:
             return
         if obj.is_child_of(self.recycle_bin):
-            logger.info(f"[Controller][{datetime.now()}] Permanently deleting object from recycle bin: {obj._file_name}")
+            logger.debug(f"[Controller][{datetime.now()}] Permanently deleting object from recycle bin: {obj._file_name}")
             self.id_cache.pop(obj._id, None)
             if obj._parent:
                 parent = cast(Directory, obj._parent)
@@ -220,7 +215,7 @@ class Controller:
         restore_path = obj._restore_path
         obj._restore_path = None
         
-        target_dir = self.path_to_file(restore_path)
+        target_dir = self.path_to_object(restore_path)
         if target_dir is None:
             logger.warning(f"[Controller][{datetime.now()}] Restore path '{restore_path}' not found, restoring to root.")
             target_dir = self.root_directory
@@ -232,7 +227,7 @@ class Controller:
         if target_dir.can_inherit_children(obj):
             self.recycle_bin.release_children(obj)
             target_dir.inherit_children(obj)
-            logger.info(f"[Controller][{datetime.now()}] Restored object to '{target_dir._file_name}'.")
+            logger.debug(f"[Controller][{datetime.now()}] Restored object to '{target_dir._file_name}'.")
         else:
             logger.warning(f"[Controller][{datetime.now()}] Cannot restore object to '{target_dir._file_name}', name conflict.")
 
@@ -326,7 +321,7 @@ class Controller:
     # ID
     # -- All -> All --
         
-    def path_to_file(self, path: str) -> Optional[FileObject]:
+    def path_to_object(self, path: str) -> Optional[FileObject]:
         if not path or path == "/":
             return self.root_directory
         parts = [part for part in path.strip("/").split("/") if part]
@@ -343,7 +338,7 @@ class Controller:
         return current
 
     def path_to_id(self, path: str) -> Optional[str]:
-        file_object = self.path_to_file(path)
+        file_object = self.path_to_object(path)
         return file_object._id if file_object else None
 
     def object_to_id(self, obj: FileObject) -> Optional[str]:
@@ -365,5 +360,3 @@ class Controller:
         obj = self.id_to_object(id)
         return obj.get_full_path() if obj else None
 
-    def get_favorite_dirs(self) -> List[Directory]:
-        return [obj for obj in self.id_cache.values() if isinstance(obj, Directory) and obj.is_favorite()]

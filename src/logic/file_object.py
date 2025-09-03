@@ -75,7 +75,7 @@ class FileObject:
         self._update_modified()
         
     def get_file_name(self) -> str:
-        return self._file_name
+        return self._file_name if self._file_name else "/"
     
     def set_file_name(self, name: str):
         self._file_name = name

@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 
-from src.gui.directory import DirectoryGrid
+from src.gui.directory import DirectoryGrid, directory_tree
 from src.gui.language import Language
 from src.gui.record import RecordTableModel
 
@@ -35,40 +35,42 @@ class MainWindow(QMainWindow):
 
         self.controller = controller
 
-        # -- Top toolbar (slim) with path box (like Windows Explorer) --
+        # -- Top toolbar (navigation + path) --
         self.toolbar = QToolBar("Main", self)
         self.toolbar.setMovable(False)
         self.toolbar.setIconSize(QSize(16, 16))
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
 
-        self.actionBack = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), Language.get(" "), self)
-        self.actionForward = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), Language.get("   "), self)
-        self.actionUp = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowUp), Language.get(" "), self)
+        # Top toolbar actions --
+        self.actionBack = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), Language.get("ACTION_BACK"), self)
+        self.actionForward = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), Language.get("ACTION_FORWARD"), self)
+        self.actionUp = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowUp), Language.get("ACTION_UP"), self)
         self.toolbar.addActions([self.actionBack, self.actionForward, self.actionUp])
         self.toolbar.addSeparator()
 
+        # Top toolbar path editor
         self.pathEdit = QLineEdit(self)
-        self.pathEdit.setPlaceholderText(Language.get("/"))
+        self.pathEdit.setPlaceholderText(Language.get("TOP_TOOLBAR_PATH_PLACEHOLDER"))
         self.pathEdit.setFixedHeight(28)
         pathWrap = QWidget(self)
         h = QHBoxLayout(pathWrap)
         h.setContentsMargins(0, 0, 0, 0)
-        h.addWidget(QLabel(Language.get("   "), self))
+        h.addWidget(QLabel(Language.get("TOP_TOOLBAR_INFO"), self))
         h.addWidget(self.pathEdit)
         self.toolbar.addWidget(pathWrap)
 
         self.toolbar.addSeparator()
-        self.actionRefresh = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), Language.get("  "), self)
+        self.actionRefresh = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), Language.get("ACTION_REFRESH"), self)
         self.toolbar.addAction(self.actionRefresh)
 
         # -- Footer (slim status bar) --
         self.status = QStatusBar(self)
         self.status.setSizeGripEnabled(False)
         self.setStatusBar(self.status)
-        self.status.showMessage(Language.get("  "))
+        self.status.showMessage(Language.get("STATUSBAR_MESSAGE"))
 
         # -- Left dock: directory tree + favorites (like VS Code) --
-        self.leftDock = QDockWidget(Language.get("  "), self)
+        self.leftDock = QDockWidget(Language.get("LEFT_DOCK_TITLE"), self)
         self.leftDock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.tree = QTreeWidget(self.leftDock)
         self.tree.setHeaderHidden(True)
@@ -78,11 +80,11 @@ class MainWindow(QMainWindow):
         self.leftDock.setMinimumWidth(240)
 
         # Favorites section
-        self.favRoot = QTreeWidgetItem(self.tree, [Language.get("   ")])
+        self.favRoot = QTreeWidgetItem(self.tree, [Language.get("FAVORITES")])
         self.favRoot.setExpanded(True)
         
         # Workspace section
-        self.wsRoot = QTreeWidgetItem(self.tree, [Language.get("    ")])
+        self.wsRoot = QTreeWidgetItem(self.tree, [Language.get("WORKSPACE")])
         self.wsRoot.setExpanded(True)
 
         # -- Central area: splitter for directories and records --
@@ -140,7 +142,8 @@ class MainWindow(QMainWindow):
         """)
 
         # Placeholder population (empty tree)
-        self._populate_mock_left_tree()
+        self._populate_favorites()
+        self._populate_workspaces()
 
         # Hook up navigation slots
         self.actionRefresh.triggered.connect(self._refresh)
@@ -152,10 +155,12 @@ class MainWindow(QMainWindow):
 
     # ------------------ Population methods ------------------
 
-    def _populate_mock_left_tree(self):
-        for name in ["Home", "Invoices", "Contracts"]:
-            QTreeWidgetItem(self.favRoot, [name])
-        QTreeWidgetItem(self.wsRoot, ["/"])
+    def _populate_favorites(self):
+        for dir in self.controller.get_favorites():
+            QTreeWidgetItem(self.favRoot, [dir.get_file_name()])
+            
+    def _populate_workspaces(self):
+        directory_tree(self.controller.get_root(), self.wsRoot)
 
     def _populate_content(self):
         # Populate directory grid
@@ -192,7 +197,7 @@ class MainWindow(QMainWindow):
             self.pathEdit.setText(self.controller.get_current_directory().get_full_path())
             self.status.showMessage(Language.get("NAVIGATED_UP"), 1500)
 
-    # ------------------ Future wiring points ------------------
+    # ------------------  ------------------
 
     def set_controller(self, controller: "Controller"):
         self.controller = controller
@@ -204,6 +209,11 @@ class MainWindow(QMainWindow):
             self.controller.navigate_to(directory)
             self._populate_content()
             self.pathEdit.setText(directory.get_full_path())
+    
+    def save(self):
+        self.controller.save_state()
+
+    
 
 # ---------------------------- utils ----------------------------
 
@@ -216,10 +226,12 @@ def _fmt_dt(dt) -> str:
 # ---------------------------- entry point ----------------------------
 
 def gui_main():
-    print(Language.get("TEST_MSG"))
+    print(Language.get("WELCOME_MSG"))
     app = QApplication(sys.argv)
     win = MainWindow(Controller(data_path=r"C:\Users\Filip\AppData\Local\Terminy"))
     win.show()
+    
+    win.save()
     sys.exit(app.exec())
 
 if __name__ == "__main__":

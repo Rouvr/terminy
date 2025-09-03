@@ -50,3 +50,14 @@ class DirectoryGrid(QListView):
         self.model_.clear()
         for directory in directories:
             self.model_.appendRow(DirectoryGridItem(directory))
+
+def directory_tree(directory: Directory, parent: Optional[QTreeWidgetItem] = None, level: int = 0) -> QTreeWidgetItem:
+    item = QTreeWidgetItem(parent, [directory.get_file_name()]) if parent else QTreeWidgetItem([directory.get_file_name()])
+    item.setText(0, directory.get_file_name())
+    item.setIcon(0, QIcon.fromTheme("folder"))
+    item.setExpanded(False)
+
+    for subdirectory in directory.list_directories():
+        directory_tree(subdirectory, item, level + 1)
+
+    return item
