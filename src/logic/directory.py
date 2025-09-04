@@ -1,4 +1,4 @@
-from typing import List, cast
+from typing import List, cast, Optional
 from .record import Record
 from .file_object import FileObject
 from datetime import datetime
@@ -21,7 +21,7 @@ class Directory(FileObject):
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'Directory':
+    def from_dict(cls, data: dict, parent: Optional['Directory'] = None) -> 'Directory':
         super_obj = FileObject.from_dict(data)
         
         obj = cls()
@@ -31,13 +31,14 @@ class Directory(FileObject):
         obj._icon_path = super_obj._icon_path
         obj._file_name = super_obj._file_name
         obj._normal_file_name = super_obj._normal_file_name
+        obj._parent = parent
 
         children = data.get("_children", [])
         obj._children = [
-                cast(FileObject, Directory.from_dict(child_data)) 
+                cast(FileObject, Directory.from_dict(child_data, obj)) 
                 for child_data in children if isinstance(child_data, dict) and child_data.get("type") == "Directory"
             ] + [
-                 cast(FileObject, Record.from_dict(child_data)) 
+                 cast(FileObject, Record.from_dict(child_data, obj)) 
                 for child_data in children if isinstance(child_data, dict) and child_data.get("type") == "Record"
             ]
         return obj

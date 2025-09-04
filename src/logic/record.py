@@ -30,7 +30,7 @@ class Record(FileObject):
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'Record':
+    def from_dict(cls, data: dict, parent: Optional[FileObject] = None) -> 'Record':
         super_obj = FileObject.from_dict(data)
 
         obj = cls()
@@ -40,6 +40,7 @@ class Record(FileObject):
         obj._file_name = super_obj._file_name
         obj._id =  super_obj._id
         obj._normal_file_name = super_obj._normal_file_name
+        obj._parent = parent
         
         obj._name = data.get("_name", "")
         obj._normal_name = normalize(obj._name)

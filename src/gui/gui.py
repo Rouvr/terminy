@@ -1,4 +1,3 @@
-# gui_shell.py
 from __future__ import annotations
 
 import sys
@@ -15,15 +14,27 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 
-from src.gui.directory import DirectoryGrid, directory_tree
+from src.gui.directory import DirectoryGrid
 from src.gui.language import Language
 from src.gui.record import RecordTableModel
+from src.gui.directory_tree import DirectoryTree, DirectoryTreeItem
 
 from src.logic.controller import Controller
 from src.logic.directory import Directory
 from src.logic.record import Record
 
 Language.load_translations()
+
+from datetime import datetime
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger(__name__)
+logger.addHandler(RotatingFileHandler(
+    "terminy.log", maxBytes=1024*1024*5, backupCount=5, encoding="utf-8"
+))
+logger.setLevel(logging.DEBUG)
+
 
 # ---------------------------- Main Window ----------------------------
 
@@ -72,9 +83,9 @@ class MainWindow(QMainWindow):
         # -- Left dock: directory tree + favorites (like VS Code) --
         self.leftDock = QDockWidget(Language.get("LEFT_DOCK_TITLE"), self)
         self.leftDock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
-        self.tree = QTreeWidget(self.leftDock)
-        self.tree.setHeaderHidden(True)
-        self.tree.setUniformRowHeights(True)
+        
+        self.tree = DirectoryTree(self.leftDock)
+        
         self.leftDock.setWidget(self.tree)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.leftDock)
         self.leftDock.setMinimumWidth(240)
@@ -137,13 +148,11 @@ class MainWindow(QMainWindow):
             QStatusBar { padding: 2px 6px; }
             QLabel { color: palette(mid); font-weight: 600; }
             QTreeWidget { border: 1px solid palette(midlight); }
-            QListView, QTableView { border: 1px solid palette(midlight); }
+            QListView, QTableView { border: 1px solid palette(midlight); } 
             QSplitter::handle { background: palette(midlight); height: 8px; }
         """)
 
-        # Placeholder population (empty tree)
-        self._populate_favorites()
-        self._populate_workspaces()
+
 
         # Hook up navigation slots
         self.actionRefresh.triggered.connect(self._refresh)
@@ -151,7 +160,49 @@ class MainWindow(QMainWindow):
         self.actionForward.triggered.connect(self._navigate_forward)
         self.actionUp.triggered.connect(self._navigate_up)
         
+        self._populate_favorites()
         self._populate_content()
+        self._populate_workspaces()
+
+        #TODO 
+        # self.directory_grid.directoryClicked.connect(self._on_directory_clicked)
+        self.directory_grid.directoryDoubleClicked.connect(self._on_directory_double_clicked)
+        # self.directory_grid.directoryRightClicked.connect(self._on_directory_right_clicked)
+        # self.directory_grid.selectionChangedSignal.connect(self._on_directory_selection_changed)
+        # self.directory_grid.spaceRightClicked.connect(self._on_directory_space_right_clicked)
+        
+        # self.tree.itemClicked.connect(self._on_tree_item_clicked)
+        self.tree.itemDoubleClicked.connect(self._on_tree_item_double_clicked)  
+        # self.tree.itemPressed.connect(self._on_tree_item_pressed)
+        # self.tree.itemSelectionChanged.connect(self._on_tree_selection_changed)
+        # self.pathEdit.returnPressed.connect(self._on_path_entered)
+    # ----------------- Event handlers ------------------
+
+    def _on_tree_item_double_clicked(self, item: QTreeWidgetItem, column: int):
+        directory = None
+
+        # Case A: regular tree item
+        if isinstance(item, DirectoryTreeItem):
+            directory = item.directory
+        else:
+            # Case B: workspace root (or any item that stores Directory in UserRole)
+            d = item.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(d, Directory):
+                directory = d
+
+        if directory and self.controller:
+            res = self.controller.navigate_to(directory)
+            logger.debug(f"[GUI] _on_tree_item_double_clicked: Navigated to {directory.get_full_path()} with result: {res}")
+            self._populate_content()
+            self.pathEdit.setText(directory.get_full_path())
+
+    def _on_directory_double_clicked(self, directory: Directory):
+    # “Double-click”: navigate into the directory (classic file manager behavior)
+        if self.controller:
+            res = self.controller.navigate_to(directory)
+            logger.debug(f"[GUI][{datetime.now()}] _on_directory_double_clicked: Navigated to {directory.get_full_path()} with result: {res}")
+            self._populate_content()
+            self.pathEdit.setText(directory.get_full_path())
 
     # ------------------ Population methods ------------------
 
@@ -160,7 +211,8 @@ class MainWindow(QMainWindow):
             QTreeWidgetItem(self.favRoot, [dir.get_file_name()])
             
     def _populate_workspaces(self):
-        directory_tree(self.controller.get_root(), self.wsRoot)
+        self.wsRoot.setData(0, Qt.ItemDataRole.UserRole, self.controller.get_root())  # <— add this
+        DirectoryTree.attach_tree(self.controller.get_root(), self.wsRoot)
 
     def _populate_content(self):
         # Populate directory grid
@@ -228,7 +280,9 @@ def _fmt_dt(dt) -> str:
 def gui_main():
     print(Language.get("WELCOME_MSG"))
     app = QApplication(sys.argv)
-    win = MainWindow(Controller(data_path=r"C:\Users\Filip\AppData\Local\Terminy"))
+    # win = MainWindow(Controller(data_path=r"C:\Users\Filip\AppData\Local\Terminy"))
+    win = MainWindow(Controller(data_path=r"D:\Code\terminy\test_data"))
+    
     win.show()
     
     win.save()

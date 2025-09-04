@@ -110,7 +110,11 @@ class Controller:
         return True
     
     def navigate_to(self, directory: Directory) -> bool:
-        if directory is None or not directory.is_child_of(self.root_directory):
+        if directory is None:
+            logger.warning(f"[Controller][{datetime.now()}] navigate_to called with None directory.")
+            return False 
+        if not directory.is_child_of(self.root_directory) and directory != self.root_directory:
+            logger.warning(f"[Controller][{datetime.now()}] navigate_to called with invalid directory: {directory}")
             return False
         self.current_dir = directory
         self.dir_history.append(self.current_dir)
