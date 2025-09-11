@@ -4,12 +4,12 @@ import json
 import logging
 from logging.handlers import RotatingFileHandler
 
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, Optional, cast, Tuple
 from datetime import datetime
 
 from .directory import Directory
 from .record import Record
-from .helpers import normalize
+from .helpers import normalize, RECORD_DEFAULT_COLUMN_WIDTHS
 from .path_manager import PathManager
 from .file_object import FileObject
 from .indexer import RecordIndexer
@@ -24,6 +24,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class Controller:
+    """Central controller handling the state of the application and API for GUI."""
     def __init__(self, **kwargs) -> None:
         
         # Initialize PathManager and determine data/config paths
@@ -70,6 +71,8 @@ class Controller:
         except (FileNotFoundError, ValueError) as e:
             logger.error(f"[Controller][{datetime.now()}] Error loading config: {e}")
             self.config = {}
+            self.config["favorites"] = []
+            self.config["visible_record_attributes"] = Record.DEFAULT_VISIBLE_ATTRIBUTES.copy()
 
         # Build index
         self.record_indexer = RecordIndexer(self.root_directory)
@@ -90,6 +93,10 @@ class Controller:
         
         self._favorites = []
         self._load_favorites()
+        
+
+    # @staticmethod
+    # def save_registry(*, data_path: Optional[str] = None, ):
 
     # ------------ Directories ------------
 
@@ -173,7 +180,44 @@ class Controller:
 
     def get_favorites(self) -> List[Directory]:
         return self._favorites
+
+    # ------------ Record view settings ------------
     
+    def get_record_attrs(self) -> List[str]:
+        return Record.ALL_ATTRIBUTES.copy()
+    
+    def get_visible_record_attrs(self) -> List[str]:
+        attrs = Record.DEFAULT_VISIBLE_ATTRIBUTES
+        if "visible_record_attributes" in self.config:
+            attrs = self.config["visible_record_attributes"]
+        else:
+            self.config["visible_record_attributes"] = attrs
+        return attrs
+    
+    def set_visible_record_attrs(self, attrs: List[str]):
+        if not attrs:
+            return
+        self.config["visible_record_attributes"] = [attr for attr in attrs if attr in Record.ALL_ATTRIBUTES]
+
+    def add_visible_record_attr(self, attr: str, pos : int = -1):
+        if attr not in Record.ALL_ATTRIBUTES:
+            return
+        if "visible_record_attributes" not in self.config:
+            self.config["visible_record_attributes"] = Record.DEFAULT_VISIBLE_ATTRIBUTES.copy()
+        if attr in self.config["visible_record_attributes"]:
+            return
+        if pos < 0 or pos >= len(self.config["visible_record_attributes"]):
+            self.config["visible_record_attributes"].append(attr)
+        else:
+            self.config["visible_record_attributes"].insert(pos, attr)
+            
+    def remove_visible_record_attr(self, attr: str):
+        if "visible_record_attributes" not in self.config:
+            return
+        if attr in self.config["visible_record_attributes"]:
+            self.config["visible_record_attributes"].remove(attr)
+            if not self.config["visible_record_attributes"]:
+                self.config["visible_record_attributes"] = Record.DEFAULT_VISIBLE_ATTRIBUTES.copy()
 
     # ------------ state Operations ------------
 
@@ -364,3 +408,18 @@ class Controller:
         obj = self.id_to_object(id)
         return obj.get_full_path() if obj else None
 
+    # -------- User view state --------
+    def record_column_widths(self) -> Dict[str, int]:
+        if "record_column_widths" not in self.config:
+            self.config["record_column_widths"] = RECORD_DEFAULT_COLUMN_WIDTHS.copy()
+        return self.config["record_column_widths"]
+    
+    def set_record_column_width(self, attrs: List[Tuple[str, int]]):
+        if "record_column_widths" not in self.config:
+            self.config["record_column_widths"] = RECORD_DEFAULT_COLUMN_WIDTHS.copy()
+        for attr, width in attrs:
+            if attr in Record.ALL_ATTRIBUTES and isinstance(width, int) and width > 0:
+                self.config["record_column_widths"][attr] = width
+
+        
+    

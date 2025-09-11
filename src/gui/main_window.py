@@ -25,6 +25,7 @@ from src.gui.language import Language
 from src.gui.record import RecordTableModel
 from src.gui.directory_tree import DirectoryTree, DirectoryTreeItem
 from src.gui.stylesheet import stylesheet
+from src.gui.widgets.center_scroll_page import CenterScrollPage
 
 from src.logic.controller import Controller
 from src.logic.directory import Directory
@@ -75,19 +76,21 @@ class MainWindow(QMainWindow):
         self.left_dock = LeftNavDock(Language.get("LEFT_DOCK_TITLE"), self)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.left_dock)
 
-        # Center
-        central = QWidget(self) 
-        self.setCentralWidget(central)
-        v = QVBoxLayout(central) 
-        v.setContentsMargins(8,8,8,8)
-        
-        # main_window.py (inside __init__)
-        self.splitter = Splitter(self)
-        v.addWidget(self.splitter)
+        # Center scrollable page
+        central = QWidget(self); self.setCentralWidget(central)
+        v = QVBoxLayout(central); v.setContentsMargins(8,8,8,8)
 
-        # instead of creating new panes, just reference the ones Splitter made
-        self.directory_pane = self.splitter.dirPane
-        self.record_pane    = self.splitter.recPane
+        self.centerPage = CenterScrollPage(self)
+        v.addWidget(self.centerPage)
+
+        self.directory_pane = self.centerPage.dirPane
+        self.search_pane    = self.centerPage.searchPane
+        self.record_pane    = self.centerPage.recPane
+
+        self.directory_pane.set_page_scroll_mode(True)
+        self.record_pane.set_page_scroll_mode(True, max_rows=500)
+        
+        self.record_pane.set_controller(self.controller)
 
         # Status
         status = QStatusBar(self); status.setSizeGripEnabled(False)
@@ -209,17 +212,21 @@ class MainWindow(QMainWindow):
     
     def save(self):
         self.controller.save_state()
+        
+    def exit_and_save(self):
+        logger.debug(f"[Language dump] {Language.dump_requests()}")
+        self.controller.exit_and_save()
 
 
 def main_window():
     print(Language.get("WELCOME_MSG"))
     app = QApplication(sys.argv)
-    # win = MainWindow(Controller(data_path=r"C:\Users\Filip\AppData\Local\Terminy"))
+    # win = MainWindow(Co   ntroller(data_path=r"C:\Users\Filip\AppData\Local\Terminy"))
     win = MainWindow(Controller(data_path=r"D:\Code\terminy\test_data"))
+    app.aboutToQuit.connect(win.exit_and_save)
     
     win.show()
-    
-    win.save()
+
     sys.exit(app.exec())
 
 if __name__ == "__main__":

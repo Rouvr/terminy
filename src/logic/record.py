@@ -4,6 +4,31 @@ from .file_object import FileObject
 from .helpers import normalize
 
 class Record(FileObject):
+    
+    ALL_ATTRIBUTES = [
+        "name",
+        "description",
+        "validity_start",
+        "validity_end",
+        "created",
+        "modified",
+        "tags",
+        "data_folder_path",
+        "file_name",
+        "icon_path",
+    ]
+    READ_ONLY_ATTRIBUTES = [
+        "created",
+        "modified"
+    ]
+    DEFAULT_VISIBLE_ATTRIBUTES = [
+        "name",
+        "description",
+        "validity_start",
+        "validity_end",
+        "tags",
+    ]
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         

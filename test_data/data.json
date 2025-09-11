@@ -16,10 +16,10 @@
           "type": "Record",
           "_file_name": "invoice-2025-08-001.pdf",
           "_date_created": "2025-08-23T18:48:19.009538",
-          "_date_modified": "2025-08-23T18:48:19.009538",
+          "_date_modified": "2025-09-11T23:08:10.532778",
           "_icon_path": "",
           "_name": "Faktura 2025-08-001",
-          "_description": "Z\u00e1loha za zemn\u00ed pr\u00e1ce",
+          "_description": "Z\u00e1loha za zemn\u00ed pr\u00e1ce s",
           "_validity_start": "2025-07-24T18:48:19.009538",
           "_validity_end": "2025-09-22T18:48:19.009538",
           "_data_folder_path": "",
@@ -32,11 +32,11 @@
           "type": "Record",
           "_file_name": "invoice-2025-08-002.pdf",
           "_date_created": "2025-08-23T18:48:19.012625",
-          "_date_modified": "2025-08-23T18:48:19.012625",
+          "_date_modified": "2025-09-11T18:45:03.680816",
           "_icon_path": "",
           "_name": "Faktura 2025-08-002",
           "_description": "Fin\u00e1ln\u00ed vy\u00fa\u010dtov\u00e1n\u00ed bagru",
-          "_validity_start": "2025-08-23T18:48:19.009538",
+          "_validity_start": "2025-08-06T00:00:00",
           "_validity_end": "2025-09-22T18:48:19.009538",
           "_data_folder_path": "",
           "_tags": [
@@ -45,6 +45,134 @@
           ]
         }
       ]
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 1",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 2",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 3",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 4",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 5",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 6",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 7",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 8",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 10",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 20",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 30",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 40",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 50",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 60",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 70",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 80",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
     },
     {
       "type": "Directory",
@@ -64,11 +192,11 @@
               "type": "Record",
               "_file_name": "contract-supplier-ACME.pdf",
               "_date_created": "2025-08-23T18:48:19.015625",
-              "_date_modified": "2025-08-23T18:48:19.015625",
+              "_date_modified": "2025-09-11T18:13:29.316374",
               "_icon_path": "",
               "_name": "Smlouva s dodavatelem ACME",
               "_description": "Servisn\u00ed kontrakt na stroje",
-              "_validity_start": "2025-07-24T18:48:19.009538",
+              "_validity_start": "2025-09-11T00:00:00",
               "_validity_end": null,
               "_data_folder_path": "",
               "_tags": [
@@ -107,12 +235,12 @@
           "type": "Record",
           "_file_name": "contract-old.pdf",
           "_date_created": "2025-08-23T18:48:19.015625",
-          "_date_modified": "2025-08-23T18:48:19.015625",
+          "_date_modified": "2025-09-11T23:08:23.636382",
           "_icon_path": "",
           "_name": "Smlouva star\u00e1",
           "_description": "Vypr\u0161ela smlouva",
           "_validity_start": "2023-01-01T00:00:00",
-          "_validity_end": "2024-01-01T00:00:00",
+          "_validity_end": "2024-03-03T00:00:00",
           "_data_folder_path": "",
           "_tags": [
             "contract",
@@ -125,16 +253,14 @@
       "type": "Record",
       "_file_name": "readme.txt",
       "_date_created": "2025-08-23T18:48:19.015625",
-      "_date_modified": "2025-08-23T18:48:19.015625",
+      "_date_modified": "2025-09-11T18:13:11.408786",
       "_icon_path": "",
       "_name": "Projekt Terminy",
       "_description": "Ko\u0159enov\u00fd z\u00e1znam s informacemi",
-      "_validity_start": null,
-      "_validity_end": null,
+      "_validity_start": "2025-09-11T00:00:00",
+      "_validity_end": "2025-09-11T00:00:00",
       "_data_folder_path": "",
-      "_tags": [
-        "meta"
-      ]
+      "_tags": ""
     }
   ]
 }

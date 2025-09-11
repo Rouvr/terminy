@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 from .controller import Controller                          # uses JSON load/save helpers
-from .path_manager import remove_registry, set_base_path_registry  # registry ops
+from .path_manager import remove_registry, set_reg_key  # registry ops
 from .directory import Directory
 from .record import Record
 from .helpers import normalize
@@ -29,7 +29,7 @@ def reset_registry_to(base: str) -> None:
     Always delete and recreate the registry key for BasePath, per your requirement.
     """
     remove_registry(per_user=True)                 # wipe old value
-    set_base_path_registry(base, per_user=True)    # set fresh value
+    set_reg_key(base, per_user=True)    # set fresh value
     # Note: Controller below uses data_path directly, so this is just to keep
     # the registry consistent for future app runs or tools.
 

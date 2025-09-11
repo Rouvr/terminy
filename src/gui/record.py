@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
+from typing import Optional, List
 
 from PySide6.QtCore import Qt, QSize, QAbstractTableModel, QModelIndex
 from PySide6.QtGui import QAction, QIcon
@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 
-
+from datetime import datetime
 from src.gui.language import Language
 from src.logic.controller import  Controller
 from src.logic.directory import Directory
@@ -24,56 +24,17 @@ from src.logic.record import Record
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt  # Assuming PySide6; adjust for PyQt6 if needed
 # Assume Language is imported/defined elsewhere
 
+
 class RecordTableModel(QAbstractTableModel):
 
-    ALL_ATTRIBUTES = {
-        "name":            Language.get("NAME"),
-        "description":     Language.get("DESCRIPTION"),
-        "validity_start":  Language.get("VALIDITY_START"),
-        "validity_end":    Language.get("VALIDITY_END"),
-        "created":         Language.get("CREATED"),
-        "modified":        Language.get("MODIFIED"),
-        "tags":            Language.get("TAGS"),
-        "data_folder_path":Language.get("DATA_FOLDER_PATH"),
-        "file_name":       Language.get("FILE_NAME"),
-        "icon_path":       Language.get("ICON_PATH")
-    }
-    WRITE_ATTRIBUTES = {
-        "name",
-        "description",
-        "validity_start",
-        "validity_end",
-        "tags",
-        "data_folder_path",
-        "file_name",
-        "icon_path"
-    }
-    READ_ATTRIBUTES = {
-        "name",
-        "description",
-        "validity_start",
-        "validity_end",
-        "tags",
-        "data_folder_path",
-        "file_name",
-        "icon_path",
-        "created",
-        "modified"
-    }
-    DEFAULT_ATTRIBUTES = [
-        "name",
-        "description",
-        "validity_start",
-        "validity_end",
-        "tags",
-    ]
+    
 
-    def __init__(self, parent=None, *, records=None, active_attrs=DEFAULT_ATTRIBUTES, all_headers=ALL_ATTRIBUTES, write_attrs=WRITE_ATTRIBUTES):
+    def __init__(self, parent=None, *, records:Optional[List[Record]]=None, active_attrs: List[str]=Record.DEFAULT_VISIBLE_ATTRIBUTES, all_headers: List[str]=Record.ALL_ATTRIBUTES, read_only_attrs: List[str]=Record.READ_ONLY_ATTRIBUTES):
         super().__init__(parent)
         self.records = records or []  # List[Record]
         self.active_attrs = list(active_attrs)  # ordered list of keys
-        self.headers = [all_headers[a] for a in self.active_attrs]
-        self.write_attrs = set(write_attrs)
+        self.all_headers = all_headers  # full list of keys
+        self.read_only_attrs = set(read_only_attrs)
 
     # ----- shape -----
     def rowCount(self, parent=QModelIndex()):
@@ -84,18 +45,30 @@ class RecordTableModel(QAbstractTableModel):
 
     # ----- data -----
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if not index.isValid() or role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
+        if not index.isValid():
             return None
         record = self.records[index.row()]
         attr = self.active_attrs[index.column()]
-        return self._get(record, attr)
+        val = self._get(record, attr)
+
+        if role == Qt.ItemDataRole.DisplayRole:
+            if isinstance(val, datetime):
+                # match your Search pane style, or localize if you prefer
+                return val.strftime("%d-%m-%Y")
+            if isinstance(val, (list, tuple, set)):
+                return ", ".join(map(str, val))
+            return val
+        elif role == Qt.ItemDataRole.EditRole:
+            # hand back the raw value for editors (datetime, etc.)
+            return val
+        return None
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
         if role != Qt.ItemDataRole.EditRole or not index.isValid():
             return False
         record = self.records[index.row()]
         attr = self.active_attrs[index.column()]
-        if attr not in self.write_attrs:
+        if attr in self.read_only_attrs:
             return False
         self._set(record, attr, value)
         # re-read canonical value
@@ -107,32 +80,37 @@ class RecordTableModel(QAbstractTableModel):
             return Qt.ItemFlag.NoItemFlags
         attr = self.active_attrs[index.column()]
         f = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
-        if attr in self.write_attrs:
+        if attr not in self.read_only_attrs:
             f |= Qt.ItemFlag.ItemIsEditable
         return f
+
+    def _attr_label(self, attr: str) -> str:
+        return Language.get(attr.upper())
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
-            return self.headers[section]
+            if 0 <= section < len(self.active_attrs):
+                return self._attr_label(self.active_attrs[section])
+            return ""
         return None
 
     # ----- API for managing records -----
-    def get(self, index):
+    def get(self, index: int):
         """Return the Record at the given row index."""
         if 0 <= index < len(self.records):
             return self.records[index]
         raise IndexError("Index out of range")
 
-    def add(self, record):
+    def add(self, record: Record):
         """Add a new Record as a row."""
         row = len(self.records)
         self.beginInsertRows(QModelIndex(), row, row)
         self.records.append(record)
         self.endInsertRows()
 
-    def remove(self, index):
+    def remove(self, index: int):
         """Remove the row at the given index."""
         if 0 <= index < len(self.records):
             self.beginRemoveRows(QModelIndex(), index, index)
@@ -148,7 +126,7 @@ class RecordTableModel(QAbstractTableModel):
             self.records.clear()
             self.endRemoveRows()
 
-    def populate(self, records):
+    def populate(self, records: List[Record]):
         """Replace all rows with the given list of Records."""
         self.clear()
         if records:
@@ -164,15 +142,15 @@ class RecordTableModel(QAbstractTableModel):
         bottom_right = self.index(len(self.records) - 1, len(self.active_attrs) - 1)
         self.dataChanged.emit(top_left, bottom_right, [Qt.ItemDataRole.DisplayRole])
 
-    def set_active_attrs(self, attrs, all_headers):
-        """Update the active attributes (columns)."""
+    def set_active_attrs(self, attrs: List[str], all_headers: List[str] = Record.ALL_ATTRIBUTES):
         self.beginResetModel()
         self.active_attrs = list(attrs)
-        self.headers = [all_headers[a] for a in self.active_attrs]
+        # keep the canonical full list if you still need it elsewhere
+        self.all_headers = list(all_headers)
         self.endResetModel()
 
     # ----- get/set dispatch (adapted from RecordRow, now takes record as param) -----
-    def _get(self, record, attr):
+    def _get(self, record: Record, attr: str):
         return {
             "name":             record.get_name,
             "description":      record.get_description,
@@ -182,11 +160,11 @@ class RecordTableModel(QAbstractTableModel):
             "data_folder_path": record.get_data_folder_path,
             "file_name":        record.get_file_name,
             "icon_path":        record.get_icon_path,
-            "created":          getattr(record, "get_created", lambda: None),
-            "modified":         getattr(record, "get_modified", lambda: None),
+            "created":          getattr(record, "get_date_created", lambda: None),
+            "modified":         getattr(record, "get_date_modified", lambda: None),
         }.get(attr, lambda: None)()
 
-    def _set(self, record, attr, value):
+    def _set(self, record: Record, attr: str, value):
         {
             "name":             record.set_name,
             "description":      record.set_description,
@@ -197,3 +175,27 @@ class RecordTableModel(QAbstractTableModel):
             "file_name":        record.set_file_name,
             "icon_path":        record.set_icon_path,
         }.get(attr, lambda *_: None)(value)
+        
+    def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+        if column < 0 or column >= len(self.active_attrs):
+            return
+        attr = self.active_attrs[column]
+        desc = (order == Qt.SortOrder.DescendingOrder)
+
+        def keyf(rec):
+            v = self._get(rec, attr)
+            # Normalize to sortable keys (tuple: (is_none, normalized_value))
+            if v is None:
+                return (1, None)  # None goes last in ascending
+            if isinstance(v, datetime):
+                return (0, v)
+            if isinstance(v, (list, tuple, set)):
+                return (0, ", ".join(map(str, v)))
+            if isinstance(v, str):
+                return (0, v.lower())
+            return (0, v)
+
+        self.layoutAboutToBeChanged.emit()
+        self.records.sort(key=keyf, reverse=desc)
+        self.layoutChanged.emit()
+

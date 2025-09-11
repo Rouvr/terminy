@@ -1,1 +1,27 @@
-{}
+{
+  "favorites": [],
+  "visible_record_attributes": [
+    "name",
+    "created",
+    "modified",
+    "description",
+    "validity_start",
+    "validity_end",
+    "tags",
+    "data_folder_path",
+    "file_name",
+    "icon_path"
+  ],
+  "record_column_widths": {
+    "name": 169,
+    "description": 326,
+    "validity_start": 79,
+    "validity_end": 101,
+    "created": 62,
+    "modified": 61,
+    "tags": 74,
+    "data_folder_path": 111,
+    "file_name": 158,
+    "icon_path": 32
+  }
+}
