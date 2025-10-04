@@ -4,7 +4,7 @@ import sys
 from typing import List, Optional, cast
 
 from PySide6.QtCore import Qt, QSize, Signal, QPoint, QModelIndex, QItemSelectionModel
-from PySide6.QtGui import QAction, QIcon, QCursor
+from PySide6.QtGui import QAction, QIcon, QCursor, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QToolBar, QStatusBar, QHBoxLayout,
     QVBoxLayout, QLineEdit, QPushButton, QLabel, QTreeWidget, QTreeWidgetItem,
@@ -41,6 +41,8 @@ class DirectoryTreeItem(QTreeWidgetItem):
         self.directory = directory
         self.setIcon(0, QIcon.fromTheme("folder"))
         self.setExpanded(False)
+        # Enable editing for this item
+        self.setFlags(self.flags() | Qt.ItemFlag.ItemIsEditable)
         
 class DirectoryTree(QTreeWidget):
     directoryClicked = Signal(Directory)
@@ -52,6 +54,10 @@ class DirectoryTree(QTreeWidget):
     # Signals for special navigation items
     recycleBinClicked = Signal()
     workspaceClicked = Signal()
+    
+    # Signals for keyboard shortcuts
+    deleteRequested = Signal(list)  # List[Directory] to delete
+    renameRequested = Signal(Directory)  # Directory to rename
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -73,6 +79,24 @@ class DirectoryTree(QTreeWidget):
         
         # Connect to item changes for renaming
         self.itemChanged.connect(self._on_item_changed)
+        
+    def keyPressEvent(self, event: QKeyEvent):
+        """Handle keyboard shortcuts"""
+        if event.key() == Qt.Key.Key_Delete:
+            # Delete selected directories
+            selected_dirs = self.get_selected_directories()
+            if selected_dirs:
+                self.deleteRequested.emit(selected_dirs)
+                return
+        elif event.key() == Qt.Key.Key_F2:
+            # Rename selected directory (only works with single selection)
+            selected_dirs = self.get_selected_directories()
+            if len(selected_dirs) == 1:
+                self.renameRequested.emit(selected_dirs[0])
+                return
+        
+        # Call parent implementation for other keys
+        super().keyPressEvent(event)
         
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
         if isinstance(item, DirectoryTreeItem):
@@ -148,6 +172,17 @@ class DirectoryTree(QTreeWidget):
             self.editItem(item, 0)
             return True
         return False
+
+    def _on_item_changed(self, item: QTreeWidgetItem, column: int):
+        """Handle item text changes (for renaming)"""
+        if isinstance(item, DirectoryTreeItem):
+            new_name = item.text(0).strip()
+            if new_name and new_name != item.directory._file_name:
+                # Update the directory name
+                old_name = item.directory._file_name
+                item.directory._file_name = new_name
+                logger.info(f"[DirectoryTree][{datetime.now()}] Renamed directory from '{old_name}' to '{new_name}'")
+                # TODO: Notify controller/parent about the rename for persistence
         
     @staticmethod        
     def attach_tree(directory: Directory, parent: Optional[QTreeWidgetItem] = None, level: int = 0):

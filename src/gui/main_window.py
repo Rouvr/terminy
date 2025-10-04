@@ -4,7 +4,7 @@ import sys
 from typing import List, Optional, cast
 
 from PySide6.QtCore import Qt, QSize, Signal, QPoint
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QMouseEvent
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QToolBar, QStatusBar, QHBoxLayout,
     QVBoxLayout, QLineEdit, QPushButton, QLabel, QTreeWidget, QTreeWidgetItem,
@@ -106,6 +106,20 @@ class MainWindow(QMainWindow):
         self._populate_workspaces()
         self._populate_favorites()
 
+    def mousePressEvent(self, event: QMouseEvent):
+        """Handle mouse navigation shortcuts"""
+        if event.button() == Qt.MouseButton.XButton1:  # Mouse button back
+            self._navigate_back()
+            event.accept()
+            return
+        elif event.button() == Qt.MouseButton.XButton2:  # Mouse button forward
+            self._navigate_forward()
+            event.accept()
+            return
+        
+        # Call parent implementation for other buttons
+        super().mousePressEvent(event)
+
     def _connect_signals(self):
         t = self.topbar
         t.actionRefresh.triggered.connect(self._populate_content)
@@ -147,6 +161,14 @@ class MainWindow(QMainWindow):
         self.context_menu.renameRequested.connect(self._on_rename_requested)
         self.context_menu.addToFavoritesRequested.connect(self._on_add_to_favorites_requested)
         self.context_menu.removeFromFavoritesRequested.connect(self._on_remove_from_favorites_requested)
+        
+        # Keyboard shortcut signals for directory pane
+        self.directory_pane.grid.deleteRequested.connect(self._on_delete_requested)
+        self.directory_pane.grid.renameRequested.connect(self._on_rename_requested)
+        
+        # Keyboard shortcut signals for left navbar (directory tree)
+        self.left_dock.deleteRequested.connect(self._on_delete_requested)
+        self.left_dock.renameRequested.connect(self._on_rename_requested)
 
 
     # ------------------ Event handlers ------------------

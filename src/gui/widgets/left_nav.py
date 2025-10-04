@@ -19,6 +19,10 @@ class LeftNavDock(QDockWidget):
     # Special navigation signals
     recycleBinClicked = Signal()
     workspaceClicked = Signal()
+    
+    # Keyboard shortcut signals (pass-through from DirectoryTree)
+    deleteRequested = Signal(list)  # List[Directory] to delete
+    renameRequested = Signal(Directory)  # Directory to rename
 
     def __init__(self, title, parent=None):
         super().__init__(title, parent)
@@ -32,6 +36,10 @@ class LeftNavDock(QDockWidget):
         self.tree.directoryRightClicked.connect(self.directoryRightClicked)
         self.tree.selectionChangedSignal.connect(self.selectionChangedSignal)
         self.tree.spaceRightClicked.connect(self.spaceRightClicked)
+        
+        # Keyboard shortcut pass-through signals
+        self.tree.deleteRequested.connect(self.deleteRequested)
+        self.tree.renameRequested.connect(self.renameRequested)
 
         # Special navigation signals
         self.tree.recycleBinClicked.connect(self._on_recycle_bin_clicked)

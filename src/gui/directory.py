@@ -5,7 +5,7 @@ import sys
 from typing import Optional
 
 from PySide6.QtCore import Qt, QSize, Signal, QPoint, QModelIndex, QItemSelectionModel
-from PySide6.QtGui import QAction, QIcon, QFontMetrics
+from PySide6.QtGui import QAction, QIcon, QFontMetrics, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QToolBar, QStatusBar, QHBoxLayout,
     QVBoxLayout, QLineEdit, QPushButton, QLabel, QTreeWidget, QTreeWidgetItem,
@@ -71,7 +71,7 @@ class DirectoryGridItem(QStandardItem):
     def __init__(self, directory: Directory, parent=None):
         super().__init__(self.default_icon, directory.get_file_name())
         self.directory = directory
-        self.setEditable(False)
+        self.setEditable(True)  # Enable editing for renaming
         # helpful roles for painting/UX
         self.setData(directory, Qt.ItemDataRole.UserRole)
         self.setData(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
@@ -86,6 +86,10 @@ class DirectoryGrid(QListView):
     selectionChangedSignal = Signal(list)              # list[Directory]
     spaceRightClicked = Signal(QPoint)          # global pos for context menus
     
+    # Signals for keyboard shortcuts
+    deleteRequested = Signal(list)  # List[Directory] to delete
+    renameRequested = Signal(Directory)  # Directory to rename
+    
     icon_size = 48
     spacing_size = 16
     grid_size = QSize(icon_size * 2, icon_size + icon_size)  # icon + text + padding
@@ -97,7 +101,7 @@ class DirectoryGrid(QListView):
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
         
-        # Enable editing for renaming
+        # Enable editing for renaming (triggered manually)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)  # We'll trigger editing manually
         
         self.setViewMode(QListView.ViewMode.IconMode)
@@ -124,6 +128,24 @@ class DirectoryGrid(QListView):
         
         self.selectionModelChanged = False
         self.selectionModel().selectionChanged.connect(self._emit_selection)  # guarded in event below
+
+    def keyPressEvent(self, event: QKeyEvent):
+        """Handle keyboard shortcuts"""
+        if event.key() == Qt.Key.Key_Delete:
+            # Delete selected directories
+            selected_dirs = self.get_selected_directories()
+            if selected_dirs:
+                self.deleteRequested.emit(selected_dirs)
+                return
+        elif event.key() == Qt.Key.Key_F2:
+            # Rename selected directory (only works with single selection)
+            selected_dirs = self.get_selected_directories()
+            if len(selected_dirs) == 1:
+                self.renameRequested.emit(selected_dirs[0])
+                return
+        
+        # Call parent implementation for other keys
+        super().keyPressEvent(event)
 
     def _on_clicked(self, index: QModelIndex):
         item = self.model_.itemFromIndex(index)
