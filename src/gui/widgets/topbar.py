@@ -13,9 +13,10 @@ class TopBar(QToolBar):
         self.actionBack = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowLeft), Language.get("ACTION_BACK"), self)
         self.actionForward = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowRight), Language.get("ACTION_FORWARD"), self)
         self.actionUp = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowUp), Language.get("ACTION_UP"), self)
+        self.actionHome = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_DirHomeIcon), Language.get("ACTION_HOME"), self)
         self.actionRefresh = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), Language.get("ACTION_REFRESH"), self)
 
-        self.addActions([self.actionBack, self.actionForward, self.actionUp])
+        self.addActions([self.actionBack, self.actionForward, self.actionUp, self.actionHome])
         self.addSeparator()
 
         self.pathEdit = QLineEdit(self)

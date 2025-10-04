@@ -1,4 +1,0 @@
-x = [('ICON_PATH', 'cs'), ('SEARCH', 'cs'), ('CLEAR', 'cs'), ('TOP_TOOLBAR_PATH_PLACEHOLDER', 'cs'), ('CREATED', 'cs'), ('WORKSPACE', 'cs'), ('FILE_NAME', 'cs'), ('TAGS', 'cs'), ('FILENAME', 'cs'), ('WELCOME_MSG', 'cs'), ('VALIDITY_END', 'cs'), ('MODIFIED', 'cs'), ('TIME_CREATED', 'cs'), ('APP_TITLE', 'cs'), ('ACTION_FORWARD', 'cs'), ('RECORD_ID', 'cs'), ('COLUMNS', 'cs'), ('FAVORITES', 'cs'), ('DATA_FOLDER_PATH', 'cs'), ('ACTION_BACK', 'cs'), ('VALIDITY_START', 'cs'), ('TOP_TOOLBAR_INFO', 'cs'), ('TIME_MODIFIED', 'cs'), ('ACTION_UP', 'cs'), ('ACTION_REFRESH', 'cs'), ('NAME', 'cs'), ('LEFT_DOCK_TITLE', 'cs'), ('DESCRIPTION', 'cs'), ('RECORDS', 'cs')]
-with open ("cs.txt", "w", encoding="utf-8") as f:
-    for key, tag in x:
-        f.write(f"{key}=\n")

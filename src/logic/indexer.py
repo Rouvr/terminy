@@ -6,10 +6,10 @@ from typing import Dict, Set, List, Iterable, Optional, Tuple
 import marisa_trie
 from rapidfuzz import fuzz
 
-from .directory import Directory
-from .record import Record
-from .file_object import FileObject
-from .helpers import normalize
+from src.logic.directory import Directory
+from src.logic.record import Record
+from src.logic.file_object import FileObject
+from src.logic.helpers import normalize
 
 
 class RecordIndexer:

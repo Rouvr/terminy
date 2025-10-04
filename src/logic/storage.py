@@ -5,7 +5,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
-from .directory import Directory
+from src.logic.directory import Directory
 
 logger = logging.getLogger(__name__)
 logger.addHandler(RotatingFileHandler(

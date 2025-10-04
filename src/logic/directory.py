@@ -1,6 +1,6 @@
 from typing import List, cast, Optional
-from .record import Record
-from .file_object import FileObject
+from src.logic.record import Record
+from src.logic.file_object import FileObject
 from datetime import datetime
 
 class Directory(FileObject):
@@ -129,7 +129,7 @@ class Directory(FileObject):
         for child in child_candidates:
             if child not in self._children:
                 if child._parent:
-                    parent = cast(Directory, child.parent)
+                    parent = cast(Directory, child._parent)
                     parent.release_children(child)
                 self._children.append(child)
                 child._parent = self

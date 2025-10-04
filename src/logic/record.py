@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 from datetime import datetime
-from .file_object import FileObject
-from .helpers import normalize
+from src.logic.file_object import FileObject
+from src.logic.helpers import normalize
 
 class Record(FileObject):
     

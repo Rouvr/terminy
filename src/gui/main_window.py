@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from typing import List, Optional, cast
 
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, Signal, QPoint
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QToolBar, QStatusBar, QHBoxLayout,
@@ -19,6 +19,7 @@ from src.gui.widgets.left_nav import LeftNavDock
 from src.gui.widgets.directory_pane import DirectoryPane
 from src.gui.widgets.record_pane import RecordPane
 from src.gui.widgets.splitter import Splitter
+from src.gui.widgets.context_menu import ContextMenuManager
 
 from src.gui.directory import DirectoryGrid
 from src.gui.language import Language
@@ -92,6 +93,9 @@ class MainWindow(QMainWindow):
         
         self.record_pane.set_controller(self.controller)
 
+        # Context menu manager
+        self.context_menu = ContextMenuManager(self.controller, self)
+
         # Status
         status = QStatusBar(self); status.setSizeGripEnabled(False)
         self.setStatusBar(status)
@@ -108,10 +112,41 @@ class MainWindow(QMainWindow):
         t.actionBack.triggered.connect(self._navigate_back)
         t.actionForward.triggered.connect(self._navigate_forward)
         t.actionUp.triggered.connect(self._navigate_up)
+        t.actionHome.triggered.connect(self._navigate_home)
         t.pathEdit.returnPressed.connect(self._navigate_path)
 
         self.left_dock.directoryDoubleClicked.connect(self._navigate_to_directory)
+        self.left_dock.recycleBinClicked.connect(self._navigate_to_recycle_bin)
+        self.left_dock.workspaceClicked.connect(self._navigate_home)
+        
+        # Context menu signals for left navbar (same as directory pane)
+        self.left_dock.directoryRightClicked.connect(self._on_directory_right_clicked)
+        self.left_dock.spaceRightClicked.connect(self._on_directory_space_right_clicked)
+        
         self.directory_pane.grid.directoryDoubleClicked.connect(self._navigate_to_directory)
+
+        # Context menu signals for directory pane
+        self.directory_pane.grid.directoryRightClicked.connect(self._on_directory_right_clicked)
+        self.directory_pane.grid.spaceRightClicked.connect(self._on_directory_space_right_clicked)
+        self.directory_pane.grid.selectionChangedSignal.connect(self._on_directory_selection_changed)
+
+        # Context menu signals for record pane
+        self.record_pane.recordRightClicked.connect(self._on_record_right_clicked)
+        self.record_pane.spaceRightClicked.connect(self._on_record_space_right_clicked)
+        self.record_pane.recordsSelectionChanged.connect(self._on_record_selection_changed)
+
+        # Context menu action signals
+        self.context_menu.cutRequested.connect(self._on_cut_requested)
+        self.context_menu.copyRequested.connect(self._on_copy_requested)
+        self.context_menu.pasteRequested.connect(self._on_paste_requested)
+        self.context_menu.deleteRequested.connect(self._on_delete_requested)
+        self.context_menu.deletePermRequested.connect(self._on_delete_requested)
+        self.context_menu.recoverRequested.connect(self._on_recover_requested)
+        self.context_menu.newDirectoryRequested.connect(self._on_new_directory_requested)
+        self.context_menu.newRecordRequested.connect(self._on_new_record_requested)
+        self.context_menu.renameRequested.connect(self._on_rename_requested)
+        self.context_menu.addToFavoritesRequested.connect(self._on_add_to_favorites_requested)
+        self.context_menu.removeFromFavoritesRequested.connect(self._on_remove_from_favorites_requested)
 
 
     # ------------------ Event handlers ------------------
@@ -186,6 +221,24 @@ class MainWindow(QMainWindow):
             self.topbar.pathEdit.setText(self.controller.get_current_directory().get_full_path())
             self.statusBar().showMessage(Language.get("NAVIGATED_UP"), 1500)
 
+    def _navigate_home(self):
+        """Navigate to the root directory"""
+        if self.controller:
+            root_directory = self.controller.get_root()
+            if self.controller.navigate_to(root_directory):
+                self._populate_content()
+                self.topbar.pathEdit.setText(root_directory.get_full_path())
+                logger.debug(f"[MainWindow][{datetime.now()}] Navigated to root directory")
+
+    def _navigate_to_recycle_bin(self):
+        """Navigate to the recycle bin"""
+        if self.controller:
+            recycle_bin = self.controller.get_recycle_bin()
+            if self.controller.navigate_to(recycle_bin):
+                self._populate_content()
+                self.topbar.pathEdit.setText(recycle_bin.get_full_path())
+                logger.debug(f"[MainWindow][{datetime.now()}] Navigated to recycle bin")
+
     def _navigate_path(self):
         path = self.topbar.pathEdit.text().strip()
         if self.controller and path:
@@ -202,6 +255,136 @@ class MainWindow(QMainWindow):
         self.controller.navigate_to(directory)
         self._populate_content()
         self.topbar.pathEdit.setText(directory.get_full_path())
+
+    # ------------------ Context Menu Event Handlers ------------------
+
+    def _on_directory_right_clicked(self, directory: Directory, global_pos: QPoint):
+        """Handle right-click on a directory (from either directory pane or left navbar)"""
+        # Get selections from both directory pane and left navbar
+        main_pane_selection = self.directory_pane.grid.get_selected_directories()
+        navbar_selection = self.left_dock.tree.get_selected_directories()
+        
+        # Use whichever has selections, preferring the one that contains the clicked directory
+        if directory in navbar_selection:
+            selected_directories = navbar_selection
+        elif directory in main_pane_selection:
+            selected_directories = main_pane_selection
+        else:
+            # If the clicked directory isn't in any selection, use it as single selection
+            selected_directories = [directory]
+            
+        current_directory = self.controller.get_current_directory()
+        self.context_menu.show_directory_context_menu(
+            global_pos, selected_directories, current_directory, False
+        )
+
+    def _on_directory_space_right_clicked(self, global_pos: QPoint):
+        """Handle right-click on empty space in directory pane"""
+        current_directory = self.controller.get_current_directory()
+        self.context_menu.show_directory_context_menu(
+            global_pos, [], current_directory, True
+        )
+
+    def _on_directory_selection_changed(self, selected_directories: List[Directory]):
+        """Handle directory selection changes"""
+        logger.debug(f"[MainWindow][{datetime.now()}] Directory selection changed: {len(selected_directories)} selected")
+
+    def _on_record_right_clicked(self, record: Record, global_pos: QPoint):
+        """Handle right-click on a record"""
+        selected_records = self.record_pane.get_selected_records()
+        current_directory = self.controller.get_current_directory()
+        self.context_menu.show_record_context_menu(
+            global_pos, selected_records, current_directory, False
+        )
+
+    def _on_record_space_right_clicked(self, global_pos: QPoint):
+        """Handle right-click on empty space in record pane"""
+        current_directory = self.controller.get_current_directory()
+        self.context_menu.show_record_context_menu(
+            global_pos, [], current_directory, True
+        )
+
+    def _on_record_selection_changed(self, selected_records: List[Record]):
+        """Handle record selection changes"""
+        logger.debug(f"[MainWindow][{datetime.now()}] Record selection changed: {len(selected_records)} selected")
+
+    # ------------------ Context Menu Action Handlers ------------------
+
+    def _on_cut_requested(self, items: List):
+        """Handle cut action"""
+        self.controller.add_to_clipboard(items, "cut")
+        logger.debug(f"[MainWindow][{datetime.now()}] Cut {len(items)} items to clipboard")
+
+    def _on_copy_requested(self, items: List):
+        """Handle copy action"""
+        self.controller.add_to_clipboard(items, "copy")
+        logger.debug(f"[MainWindow][{datetime.now()}] Copied {len(items)} items to clipboard")
+
+    def _on_paste_requested(self):
+        """Handle paste action"""
+        current_directory = self.controller.get_current_directory()
+        result = self.controller.paste_from_clipboard(current_directory)
+        if result:
+            self._populate_content()
+            logger.debug(f"[MainWindow][{datetime.now()}] Pasted clipboard items to {current_directory._file_name}")
+        else:
+            logger.warning(f"[MainWindow][{datetime.now()}] Failed to paste clipboard items")
+
+    def _on_delete_requested(self, items: List):
+        """Handle delete (move to trash) action"""
+        # Move items to recycle bin
+        for item in items:
+            self.controller.delete_file_object(item)
+        self._populate_content()
+        logger.debug(f"[MainWindow][{datetime.now()}] Moved {len(items)} items to trash")
+
+
+    def _on_recover_requested(self, items: List):
+        """Handle recover from trash action"""
+        for item in items:
+            self.controller.restore_file_object(item)
+        self._populate_content()
+        logger.debug(f"[MainWindow][{datetime.now()}] Recover requested for {len(items)} items")
+
+    def _on_new_directory_requested(self):
+        """Handle new directory creation"""
+        current_directory = self.controller.get_current_directory()
+        self.controller.create_directory(current_directory)    
+        self._populate_content()    
+        logger.debug(f"[MainWindow][{datetime.now()}] New directory requested")
+
+    def _on_new_record_requested(self):
+        """Handle new record creation"""
+        current_directory = self.controller.get_current_directory()
+        self.controller.create_record(current_directory)
+        self._populate_content()
+        logger.debug(f"[MainWindow][{datetime.now()}] New record requested")
+
+    def _on_rename_requested(self, item):
+        """Handle rename action - start inline editing"""
+        from src.logic.directory import Directory
+        
+        if isinstance(item, Directory):
+            # Try to start editing in the directory pane first
+            if not self.directory_pane.grid.start_editing_directory(item):
+                # If not found in directory pane, try the left navbar
+                self.left_dock.tree.start_editing_directory(item)
+            logger.info(f"[MainWindow][{datetime.now()}] Started inline editing for directory: {item._file_name}")
+        else:
+            # For records, we'll need to implement record renaming separately
+            logger.info(f"[MainWindow][{datetime.now()}] Rename requested for record: {item._file_name if hasattr(item, '_file_name') else 'item'} (record renaming not yet implemented)")
+
+    def _on_add_to_favorites_requested(self, directory: Directory):
+        """Handle add to favorites action"""
+        self.controller.add_favorite(directory)
+        self._populate_favorites()
+        logger.info(f"[MainWindow][{datetime.now()}] Added {directory._file_name} to favorites")
+
+    def _on_remove_from_favorites_requested(self, directory: Directory):
+        """Handle remove from favorites action"""
+        self.controller.remove_favorite(directory)
+        self._populate_favorites()
+        logger.info(f"[MainWindow][{datetime.now()}] Removed {directory._file_name} from favorites")
 
     # ------------------  ------------------
 

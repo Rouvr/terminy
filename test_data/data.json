@@ -96,14 +96,6 @@
     },
     {
       "type": "Directory",
-      "_file_name": "Long test name 7",
-      "_date_created": "2025-08-23T18:48:19.009538",
-      "_date_modified": "2025-08-23T18:48:19.009538",
-      "_icon_path": "",
-      "_children": []
-    },
-    {
-      "type": "Directory",
       "_file_name": "Long test name 8",
       "_date_created": "2025-08-23T18:48:19.009538",
       "_date_modified": "2025-08-23T18:48:19.009538",
@@ -137,14 +129,6 @@
     {
       "type": "Directory",
       "_file_name": "Long test name 40",
-      "_date_created": "2025-08-23T18:48:19.009538",
-      "_date_modified": "2025-08-23T18:48:19.009538",
-      "_icon_path": "",
-      "_children": []
-    },
-    {
-      "type": "Directory",
-      "_file_name": "Long test name 50",
       "_date_created": "2025-08-23T18:48:19.009538",
       "_date_modified": "2025-08-23T18:48:19.009538",
       "_icon_path": "",
@@ -250,17 +234,49 @@
       ]
     },
     {
+      "type": "Directory",
+      "_file_name": "New Directory",
+      "_date_created": "2025-10-04T17:15:43.300814",
+      "_date_modified": "2025-10-04T17:15:43.300816",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "New Directory (1)",
+      "_date_created": "2025-10-04T17:16:28.078833",
+      "_date_modified": "2025-10-04T17:16:28.078835",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "New Directory (2)",
+      "_date_created": "2025-10-04T17:16:30.056608",
+      "_date_modified": "2025-10-04T17:16:30.056610",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
       "type": "Record",
       "_file_name": "readme2.txt",
       "_date_created": "2025-08-23T18:48:19.015625",
-      "_date_modified": "2025-09-12T14:56:39.365751",
+      "_date_modified": "2025-10-04T16:17:59.315774",
       "_icon_path": "",
       "_name": "Projekt Terminy",
-      "_description": "Ko\u0159enov\u00fd z\u00e1znam s informacemi",
+      "_description": "Ko\u0159enov\u00fd z\u00e1znam s informacemi Lmao",
       "_validity_start": "2025-09-11T00:00:00",
       "_validity_end": "2025-09-11T00:00:00",
       "_data_folder_path": "",
       "_tags": ""
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Nov\u00e1 slo\u017eka",
+      "_date_created": "2025-10-04T17:31:07.336679",
+      "_date_modified": "2025-10-04T17:31:07.336681",
+      "_icon_path": "",
+      "_children": []
     }
   ]
 }

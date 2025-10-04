@@ -1,7 +1,7 @@
 from uuid import uuid4
 from typing import Optional, cast
 from datetime import datetime
-from .helpers import normalize
+from src.logic.helpers import normalize
 
 class FileObject:
     def __init__(self, **kwargs):

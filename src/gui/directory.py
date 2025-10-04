@@ -20,6 +20,16 @@ from src.logic.controller import  Controller
 from src.logic.directory import Directory
 from src.logic.record import Record
 
+from datetime import datetime
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger(__name__)
+logger.addHandler(RotatingFileHandler(
+    "terminy.log", maxBytes=1024*1024*5, backupCount=5, encoding="utf-8"
+))
+logger.setLevel(logging.DEBUG)
+
 class DirectoryItemDelegate(QStyledItemDelegate):
     """Paint icon on top, wrapped text below, and report a wider sizeHint."""
     def __init__(self, parent=None, label_columns: int = 22, label_lines: int = 2):
@@ -87,6 +97,9 @@ class DirectoryGrid(QListView):
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
         
+        # Enable editing for renaming
+        self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)  # We'll trigger editing manually
+        
         self.setViewMode(QListView.ViewMode.IconMode)
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setMovement(QListView.Movement.Static)
@@ -103,6 +116,8 @@ class DirectoryGrid(QListView):
         # make the cell size match the delegate immediately
         self.setGridSize(self.cell_size_hint())
         
+        # Connect to item changes for renaming
+        self.model_.itemChanged.connect(self._on_item_changed)
 
         self.clicked.connect(self._on_clicked)
         self.doubleClicked.connect(self._on_double_clicked)
@@ -166,6 +181,37 @@ class DirectoryGrid(QListView):
             if d:
                 dirs.append(d)
         self.selectionChangedSignal.emit(dirs)
+
+    def get_selected_directories(self) -> list[Directory]:
+        """Get currently selected directories"""
+        dirs = []
+        if self.selectionModel():
+            for idx in self.selectionModel().selectedIndexes():
+                d = self.directory_from_index(idx)
+                if d:
+                    dirs.append(d)
+        return dirs
+
+    def start_editing_directory(self, directory: Directory):
+        """Start inline editing for the given directory"""
+        for i in range(self.model_.rowCount()):
+            item = self.model_.item(i)
+            if isinstance(item, DirectoryGridItem) and item.directory == directory:
+                index = self.model_.indexFromItem(item)
+                self.edit(index)
+                return True
+        return False
+
+    def _on_item_changed(self, item: QStandardItem):
+        """Handle item text changes (for renaming)"""
+        if isinstance(item, DirectoryGridItem):
+            new_name = item.text().strip()
+            if new_name and new_name != item.directory._file_name:
+                # Update the directory name
+                old_name = item.directory._file_name
+                item.directory._file_name = new_name
+                logger.info(f"[DirectoryGrid] Renamed directory from '{old_name}' to '{new_name}'")
+                # TODO: Notify controller/parent about the rename for persistence
             
     # --- Right click support ---
     def contextMenuEvent(self, event):

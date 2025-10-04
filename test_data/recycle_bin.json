@@ -4,5 +4,22 @@
   "_date_created": "2025-08-23T18:48:19.006539",
   "_date_modified": "2025-08-23T18:48:19.006539",
   "_icon_path": "",
-  "_children": []
+  "_children": [
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 50",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    },
+    {
+      "type": "Directory",
+      "_file_name": "Long test name 7",
+      "_date_created": "2025-08-23T18:48:19.009538",
+      "_date_modified": "2025-08-23T18:48:19.009538",
+      "_icon_path": "",
+      "_children": []
+    }
+  ]
 }

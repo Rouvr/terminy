@@ -7,13 +7,14 @@ from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, cast, Tuple
 from datetime import datetime
 
-from .directory import Directory
-from .record import Record
-from .helpers import normalize, RECORD_DEFAULT_COLUMN_WIDTHS
-from .path_manager import PathManager
-from .file_object import FileObject
-from .indexer import RecordIndexer
-from .storage import Storage
+from src.logic.language import Language
+from src.logic.directory import Directory
+from src.logic.record import Record
+from src.logic.helpers import normalize, RECORD_DEFAULT_COLUMN_WIDTHS
+from src.logic.path_manager import PathManager
+from src.logic.file_object import FileObject
+from src.logic.indexer import RecordIndexer
+from src.logic.storage import Storage
 
 logger = logging.getLogger(__name__)
 logger.addHandler(RotatingFileHandler(
@@ -120,7 +121,7 @@ class Controller:
         if directory is None:
             logger.warning(f"[Controller][{datetime.now()}] navigate_to called with None directory.")
             return False 
-        if not directory.is_child_of(self.root_directory) and directory != self.root_directory:
+        if not directory.is_child_of(self.root_directory) and directory != self.root_directory and directory != self.recycle_bin:
             logger.warning(f"[Controller][{datetime.now()}] navigate_to called with invalid directory: {directory}")
             return False
         self.current_dir = directory
@@ -321,7 +322,23 @@ class Controller:
     def create_directory(self, target_dir, **kwargs):
         if target_dir is None:
             return None
+        
+        # Ensure unique name
+        if "file_name" not in kwargs or not kwargs["file_name"]:
+            kwargs["file_name"] = Language.get("NEW_DIRECTORY")
+        
+        children_names = [child._file_name for child in target_dir.list_directories()] if target_dir else []
+        base_name = kwargs["file_name"]
+        
+        i = 1
+        new_name = base_name
+        while new_name in children_names:
+            new_name = f"{base_name} ({i})"
+            i += 1
+        
+        
         directory = Directory(**kwargs)
+        directory._file_name = new_name
         self.id_cache[directory._id] = directory
         target_dir.inherit_children(directory)
         return directory

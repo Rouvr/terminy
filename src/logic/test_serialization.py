@@ -3,9 +3,9 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List, Tuple, cast
 
-from .file_object import FileObject
-from .directory import Directory
-from .record import Record
+from src.logic.file_object import FileObject
+from src.logic.directory import Directory
+from src.logic.record import Record
 
 
 def factory_from_dict(data: Dict[str, Any]) -> FileObject:

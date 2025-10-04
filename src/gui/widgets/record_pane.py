@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import partial
 from typing import Optional
 
-from PySide6.QtCore import Qt, QDate,QLocale, QTimer
+from PySide6.QtCore import Qt, QDate,QLocale, QTimer, Signal, QPoint
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableView, QHeaderView,
     QMenu, QToolButton, QStyledItemDelegate, QDateEdit, QWidget, QWidgetAction, QCheckBox, QStyle
@@ -23,6 +23,11 @@ logger.addHandler(RotatingFileHandler(
 logger.setLevel(logging.DEBUG)
 
 class RecordPane(QWidget):
+    # Signals for context menu events
+    recordRightClicked = Signal(Record, QPoint)  # record + global pos for context menus
+    recordsSelectionChanged = Signal(list)       # list[Record] 
+    spaceRightClicked = Signal(QPoint)           # global pos for context menus on empty space
+    
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -64,6 +69,14 @@ class RecordPane(QWidget):
         self.view.horizontalHeader().setSortIndicatorShown(True)
         # rows auto-height
         self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        
+        # Enable selection and context menu
+        self.view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.view.customContextMenuRequested.connect(self._show_context_menu)
+        
+        # Track selection changes
+        self.view.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
         v.addWidget(self.view)
         self._defaultDelegate = QStyledItemDelegate(self.view) 
@@ -243,6 +256,45 @@ class RecordPane(QWidget):
             self.view.sortByColumn(new_section, prev_order)
 
         self.update_auto_height()
+
+    # --------- Context Menu Methods ---------
+    
+    def _show_context_menu(self, position: QPoint):
+        """Handle context menu request"""
+        from datetime import datetime
+        index = self.view.indexAt(position)
+        global_pos = self.view.mapToGlobal(position)
+        
+        if index.isValid():
+            # Get the record at this position
+            record = self.model.records[index.row()]
+            self.recordRightClicked.emit(record, global_pos)
+        else:
+            # Clicked on empty space
+            self.spaceRightClicked.emit(global_pos)
+    
+    def _on_selection_changed(self):
+        """Handle selection changes"""
+        from datetime import datetime
+        selected_records = self.get_selected_records()
+        self.recordsSelectionChanged.emit(selected_records)
+        logger.debug(f"[RecordPane][{datetime.now()}] Selection changed: {len(selected_records)} records selected")
+    
+    def get_selected_records(self) -> list[Record]:
+        """Get currently selected records"""
+        selection_model = self.view.selectionModel()
+        if not selection_model:
+            return []
+        
+        selected_indexes = selection_model.selectedRows()
+        selected_records = []
+        
+        for index in selected_indexes:
+            if index.isValid():
+                record = self.model.records[index.row()]
+                selected_records.append(record)
+        
+        return selected_records
 
 class DateOnlyDelegate(QStyledItemDelegate):
     """Date-only editor with calendar popup. Writes a Python datetime at 00:00."""
