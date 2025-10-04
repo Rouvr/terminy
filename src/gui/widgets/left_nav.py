@@ -29,6 +29,10 @@ class LeftNavDock(QDockWidget):
         self.tree.selectionChangedSignal.connect(self.selectionChangedSignal)
         self.tree.spaceRightClicked.connect(self.spaceRightClicked)
 
+        # Recycle bin
+        self.recycle_bin_root = QTreeWidgetItem(self.tree, [Language.get("RECYCLE_BIN")])
+        self.recycle_bin_root.setExpanded(False)
+
         # Favorites section
         self.favorites_root = QTreeWidgetItem(self.tree, [Language.get("FAVORITES")])
         self.favorites_root.setExpanded(True)

@@ -119,11 +119,11 @@ class SearchPane(QWidget):
 
         # Filename
         self.edit_filename = QLineEdit(self)
-        self.edit_filename.setPlaceholderText("Filename")
+        self.edit_filename.setPlaceholderText(Language.get("FILENAME"))
 
         # Record ID
         self.edit_record_id = QLineEdit(self)
-        self.edit_record_id.setPlaceholderText("Record id")
+        self.edit_record_id.setPlaceholderText(Language.get("RECORD_ID"))
 
         # Time created: min + max
         self.date_created_min = self._mk_date()
@@ -146,22 +146,22 @@ class SearchPane(QWidget):
         vend_row = self._mk_range_row("Min", self.date_vend_min, "Max", self.date_vend_max)
 
         # Tags: required + any + exclude
-        self.edit_tags_required = QLineEdit(self); self.edit_tags_required.setPlaceholderText("required tags (comma)")
-        self.edit_tags_any      = QLineEdit(self); self.edit_tags_any.setPlaceholderText("any tags (comma)")
-        self.edit_tags_exclude  = QLineEdit(self); self.edit_tags_exclude.setPlaceholderText("exclude tags (comma)")
+        self.edit_tags_required = QLineEdit(self); self.edit_tags_required.setPlaceholderText(Language.get("REQUIRED_TAGS_COMMA"))
+        self.edit_tags_any      = QLineEdit(self); self.edit_tags_any.setPlaceholderText(Language.get("ANY_TAGS_COMMA"))
+        self.edit_tags_exclude  = QLineEdit(self); self.edit_tags_exclude.setPlaceholderText(Language.get("EXCLUDE_TAGS_COMMA"))
         tags_row = self._mk_tags_row()
 
         # Build rows (keep order tidy)
         r = 0
         add_row(r, Language.get("NAME") or "Name", self.edit_name, self.btn_name); r += 1
         add_row(r, Language.get("DESCRIPTION") or "Description", self.edit_desc, self.btn_desc); r += 1
-        add_row(r, "Filename", self.edit_filename, self.btn_filename); r += 1
-        add_row(r, "Record ID", self.edit_record_id, self.btn_record_id); r += 1
-        add_row(r, "Time created", created_row, self.btn_created); r += 1
-        add_row(r, "Time modified", modified_row, self.btn_modified); r += 1
-        add_row(r, "Validity start", vstart_row, self.btn_vstart); r += 1
-        add_row(r, "Validity end", vend_row, self.btn_vend); r += 1
-        add_row(r, Language.get("TAGS") or "Tags", tags_row, self.btn_tags); r += 1
+        add_row(r, Language.get("FILENAME"), self.edit_filename, self.btn_filename); r += 1
+        add_row(r, Language.get("RECORD_ID"), self.edit_record_id, self.btn_record_id); r += 1
+        add_row(r, Language.get("CREATED"), created_row, self.btn_created); r += 1
+        add_row(r, Language.get("MODIFIED"), modified_row, self.btn_modified); r += 1
+        add_row(r, Language.get("VALIDITY_START"), vstart_row, self.btn_vstart); r += 1
+        add_row(r, Language.get("VALIDITY_END"), vend_row, self.btn_vend); r += 1
+        add_row(r, Language.get("TAGS"), tags_row, self.btn_tags); r += 1
 
         root.addLayout(fields)
 
@@ -227,13 +227,13 @@ class SearchPane(QWidget):
     def _mk_tags_row(self) -> QWidget:
         w = QWidget(self)
         h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(6)
-        h.addWidget(QLabel("required:", w))
+        h.addWidget(QLabel(Language.get("REQUIRED") + ":", w))
         h.addWidget(self.edit_tags_required, 1)
         h.addSpacing(8)
-        h.addWidget(QLabel("any:", w))
+        h.addWidget(QLabel(Language.get("ANY") + ":", w))
         h.addWidget(self.edit_tags_any, 1)
         h.addSpacing(8)
-        h.addWidget(QLabel("exclude:", w))
+        h.addWidget(QLabel(Language.get("EXCLUDE") + ":", w))
         h.addWidget(self.edit_tags_exclude, 1)
         return w
 
